@@ -1,0 +1,80 @@
+import io, os, csv, random, logging
+from jacks.jacks import infer_JACKS, LOG
+from jacks.io_preprocess import load_data_and_preprocess, writeJacksWResults, writeJacksXResults, pickleJacksFullResults
+import numpy as np
+from run_JACKS import prepareFile, createSampleSpec, createGeneSpec
+    
+def loadSgrnaReference(filename):
+    f = io.open(filename)
+    x_ref = {row['sgrna']:row for row in csv.DictReader(f,delimiter='\t')}
+    f.close()
+    return x_ref
+
+if __name__ == '__main__':
+    
+    LOG.setLevel(logging.WARNING)
+    
+    if len(sys.argv) != 6:
+        print 'Usage: run_JACKS_reference.py countfile replicatefile:rep_hdr:sample_hdr:ctrl_sample guidemappingfile:sgrna_hdr:gene_hdr sgrna_reference_file outputprefix'
+    else:
+
+        #Parse arguments
+        countfile = sys.argv[1] #sgrna label is always in the first column
+
+        rep_toks = sys.argv[2].split(':')
+        if len(rep_toks) != 4:
+            raise Exception('Incorrect replicate file input: expecting "replicatefile:rep_hdr:sample_hdr:ctrl_sample" where replicatefile is a csv or tab delimited file mapping replicates to samples, rep_hdr and sample_hdr specify the column headers for the columns containing the replicate labels and sample labels respectively, and ctrl_sample specifies the name of the control sample')
+        replicatefile, rep_hdr, sample_hdr, ctrl_sample = rep_toks
+        
+        guide_toks = sys.argv[3].split(':')
+        if len(guide_toks) != 3:
+            raise Exception('Incorrect guidemappingfile input: expecting "guidemappingfile:sgrna_hdr:gene_hdr" where guidemappingfile is a csv or tab delimited file mapping guides to genes, sgrna_hdr and gene_hdr specify the column headers for the columns containing the guide labels and gene labels respectively.')
+        guidemappingfile, sgrna_hdr, gene_hdr = guide_toks   
+        
+        sgrna_reference_file = sys.argv[4]
+        
+        outprefix = sys.argv[5]
+        if '/' in outprefix and not os.path.isdir(outprefix.split('/')[0]): os.mkdir(outprefix.split('/')[0])
+        outfile_w = outprefix + '_gene_JACKS_results.txt'
+        outfile_x = outprefix + '_grna_JACKS_results.txt'
+        outfile_pickle = outprefix + '_JACKS_results_full.pickle'
+        
+        #Load the sgrna reference (precomputed X's)
+        print 'Loading sgrna reference values'
+        x_ref = loadSgrnaReference(sgrna_reference_file)
+        
+        #Load the specification of samples to include
+        print 'Loading sample specification'
+        sample_spec = createSampleSpec(countfile, replicatefile, rep_hdr, sample_hdr)
+        
+        #Load the mappings from guides to genes
+        print 'Loading gene mappings'
+        gene_spec = createGeneSpec(guidemappingfile, sgrna_hdr, gene_hdr)
+        
+        #Check that the data to be loaded have sgrna reference values
+        print 'Checking sgrna reference identifiers against gene mappings'
+        for guide in gene_spec:
+            if guide not in x_ref: 
+                raise Exception('%s has no sgrna reference in %s' % (guide, sgrna_reference_file))
+        
+        #Load the data and preprocess (or just load from pickle if we did this already)
+        print 'Loading data and pre-processing'
+        data, meta, sample_ids, genes, gene_index = load_data_and_preprocess(sample_spec, gene_spec)
+        gene_grnas = {gene: [x for x in meta[gene_index[gene],0]] for gene in gene_index}
+            
+        #Create the X reference (in the correct order)
+        x_reference = {'X1': np.array([eval(x_ref[x]['X1']) for x in meta[:,0]]),
+                       'X2': np.array([eval(x_ref[x]['X2']) for x in meta[:,0]])}
+            
+        #Run all samples against the control
+        print 'Running JACKS inference'
+        ctrldata = data[:,sample_ids.index(ctrl_sample),:]
+        testdata = data[:,[i for i,x in enumerate(sample_ids) if ctrl_sample not in x],:]
+        jacks_results = infer_JACKS(gene_index, testdata, ctrldata, fixed_x=x_reference)
+
+        #Write out the results
+        print 'Writing JACKS results'
+        sample_ids_without_ctrl = [x for x in sample_ids if x != ctrl_sample]
+        writeJacksWResults( outfile_w, jacks_results, sample_ids_without_ctrl)
+        writeJacksXResults( outfile_x, jacks_results, gene_grnas )
+        pickleJacksFullResults( outfile_pickle, jacks_results, sample_ids_without_ctrl, gene_grnas )       
