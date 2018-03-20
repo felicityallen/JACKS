@@ -41,7 +41,7 @@ if __name__ == '__main__':
     LOG.setLevel(logging.WARNING)
 
     if len(sys.argv) != 5 and len(sys.argv) != 6:
-        print 'Usage: run_JACKS.py countfile replicatefile:rep_hdr:sample_hdr:ctrl_sample guidemappingfile:sgrna_hdr:gene_hdr outputprefix apply_w_hp'
+        print('Usage: run_JACKS.py countfile replicatefile:rep_hdr:sample_hdr:ctrl_sample guidemappingfile:sgrna_hdr:gene_hdr outputprefix apply_w_hp')
     else:
 
         #Parse arguments
@@ -66,26 +66,26 @@ if __name__ == '__main__':
         outfile_pickle = outprefix + '_JACKS_results_full.pickle'
         
         #Load the specification of samples to include
-        print 'Loading sample specification'
+        print('Loading sample specification')
         sample_spec = createSampleSpec(countfile, replicatefile, rep_hdr, sample_hdr)
         
         #Load the mappings from guides to genes
-        print 'Loading gene mappings'
+        print('Loading gene mappings')
         gene_spec = createGeneSpec(guidemappingfile, sgrna_hdr, gene_hdr)
             
         #Load the data and preprocess
-        print 'Loading data and pre-processing'
+        print('Loading data and pre-processing')
         data, meta, sample_ids, genes, gene_index = load_data_and_preprocess(sample_spec, gene_spec)
         gene_grnas = {gene: [x for x in meta[gene_index[gene],0]] for gene in gene_index}
         
         #Run all samples against the control
-        print 'Running JACKS inference'
+        print('Running JACKS inference')
         ctrldata = data[:,sample_ids.index(ctrl_sample),:]
         testdata = data[:,[i for i,x in enumerate(sample_ids) if ctrl_sample not in x],:]
         jacks_results = infer_JACKS(gene_index, testdata, ctrldata, apply_w_hp=apply_w_hp)
 
         #Write out the results
-        print 'Writing JACKS results'
+        print('Writing JACKS results')
         sample_ids_without_ctrl = [x for x in sample_ids if x != ctrl_sample]
         writeJacksWResults( outfile_w, jacks_results, sample_ids_without_ctrl)
         writeJacksXResults( outfile_x, jacks_results, gene_grnas )
