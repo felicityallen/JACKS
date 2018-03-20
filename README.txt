@@ -2,7 +2,7 @@ In the subdirectories here you will find:
 
 jacks:  
 
-The JACKS python package
+The JACKS python package + examples
 
 2018_paper_materials: 
 

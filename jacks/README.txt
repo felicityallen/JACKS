@@ -11,7 +11,7 @@ To check installation:
 Run python, type 'import jacks' and check that no error is thrown.
 
 
-To run JACKS on ful screen data:
+To run JACKS on full screen data:
 ----------------------------
 
 python run_JACKS.py countfile replicatemapfile:replicate_hdr:sample_hdr:ctrl_sample sgrnamappingfile:sgrna_hdr:gene_hdr outprefix
@@ -54,7 +54,8 @@ OR to run JACKS on new screen with previously used library:
 python run_JACKS_reference.py countfile replicatemapfile:replicate_hdr:sample_hdr:ctrl_sample sgrnamappingfile:sgrna_hdr:gene_hdr grnaeffiacyfile outprefix
 
 all arguments as above except:
-    
+   
+grnaeffiacyfile contains previously trained gRNA efficacy value. This is the file outprefix_grna_JACKS_results.txt returned above, or one 
     
 example:   
 
