@@ -1,7 +1,6 @@
 import numpy as np
 import random
 import scipy as SP
-import scipy.stats as ST
 import logging
 
 logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] %(name)-5s: %(levelname)-8s %(message)s')
@@ -61,7 +60,7 @@ def infer_JACKS_gene(data, data_err, ctrl, ctrl_err, n_iter, tol=0.1, mu0_x=1, v
     #The control can be specified once for each sample, or common across all cell lines
     if len(ctrl.shape) == 1 or ctrl.shape[1] == 1: 
         #If only 1 control replicate, use mean variance from data across cell lines for that guide 
-        ctrl_err[SP.isnan(ctrl_err)] = ST.nanmean(data_err, axis=1)[SP.isnan(ctrl_err)]
+        ctrl_err[SP.isnan(ctrl_err)] = SP.nanmean(data_err, axis=1)[SP.isnan(ctrl_err)]
         y = (data.T - ctrl).T
         tau_pr_den = tau_prior_strength*1.0*((data_err**2).T + ctrl_err**2 + 1e-2).T
     else:
@@ -79,14 +78,14 @@ def infer_JACKS_gene(data, data_err, ctrl, ctrl_err, n_iter, tol=0.1, mu0_x=1, v
         x1 = fixed_x['X1']
         x2 = fixed_x['X2']
 
-    w1 = ST.nanmedian(y, axis=0)
+    w1 = SP.nanmedian(y, axis=0)
     
     tau = tau_prior_strength*1.0/tau_pr_den
    
     w2 = w1**2
     bound = lower_bound(x1,x2,w1,w2,y,tau)
-    LOG.debug("Initially, mean absolute error=%.3f"%(ST.nanmean(abs(y)).mean()))
-    LOG.debug("After init, mean absolute error=%.3f, <x>=%.1f <w>=%.1f lower bound=%.1f"%(ST.nanmean(abs(y.T-SP.outer(w1,x1))).mean(), x1.mean(), w1.mean(), bound))
+    LOG.debug("Initially, mean absolute error=%.3f"%(SP.nanmean(abs(y)).mean()))
+    LOG.debug("After init, mean absolute error=%.3f, <x>=%.1f <w>=%.1f lower bound=%.1f"%(SP.nanmean(abs(y.T-SP.outer(w1,x1))).mean(), x1.mean(), w1.mean(), bound))
     for i in range(n_iter):
         last_bound = bound
         if fixed_x is None: x1,x2 = update_x(w1,w2,tau,y,mu0_x,var0_x)
@@ -94,7 +93,7 @@ def infer_JACKS_gene(data, data_err, ctrl, ctrl_err, n_iter, tol=0.1, mu0_x=1, v
         w1,w2 = update_w(x1,x2,tau,y,mu0_w,var0_w)
         tau = update_tau(x1, x2, w1, w2, y, tau_prior_strength, tau_pr_den)
         bound = lower_bound(x1,x2,w1,w2,y,tau)
-        LOG.debug("Iter %d/%d. lb: %.1f err: %.3f x:%.2f+-%.2f w:%.2f+-%.2f xw:%.2f"%(i+1, n_iter, bound, ST.nanmean(abs(y.T-SP.outer(w1,x1))).mean(), x1.mean(), SP.median((x2-x1**2)**0.5), w1.mean(), SP.median((w2-w1**2)**0.5), x1.mean()*w1.mean()))
+        LOG.debug("Iter %d/%d. lb: %.1f err: %.3f x:%.2f+-%.2f w:%.2f+-%.2f xw:%.2f"%(i+1, n_iter, bound, SP.nanmean(abs(y.T-SP.outer(w1,x1))).mean(), x1.mean(), SP.median((x2-x1**2)**0.5), w1.mean(), SP.median((w2-w1**2)**0.5), x1.mean()*w1.mean()))
         if abs(last_bound - bound) < tol:
             break
     return y, tau, x1, x2, w1, w2
@@ -107,14 +106,14 @@ def update_x(w1, w2, tau, y, mu0_x, var0_x):
     x2 = x1**2 + 1.0/(nandot(tau,w2)+1.0/var0_x)
     wadj = 0.5/len(x1)
     #Normalize by the median-emphasized mean of x
-    x1m = x1.mean() + 2*wadj*ST.nanmedian(x1) - wadj*x1.max() - wadj*x1.min()      
-    LOG.debug("After X update, <x>=%.1f, mean absolute error=%.3f"%(x1.mean(), ST.nanmean(abs(y.T-SP.outer(w1,x1))).mean()))
+    x1m = x1.mean() + 2*wadj*SP.nanmedian(x1) - wadj*x1.max() - wadj*x1.min()      
+    LOG.debug("After X update, <x>=%.1f, mean absolute error=%.3f"%(x1.mean(), SP.nanmean(abs(y.T-SP.outer(w1,x1))).mean()))
     return x1/x1m, x2/x1m/x1m
 
 def update_w(x1, x2, tau, y, mu0_ws, var0_w):
     w1 = (mu0_ws/var0_w + nandot(x1,(y.T).T*tau))/(nandot(x2,tau)+1.0/var0_w)
     w2 = w1**2 + 1.0/(nandot(x2,tau)+1.0/var0_w)
-    LOG.debug("After W update, <w>=%.1f, mean absolute error=%.3f"%(w1.mean(), ST.nanmean(abs(y.T-SP.outer(w1,x1))).mean()))
+    LOG.debug("After W update, <w>=%.1f, mean absolute error=%.3f"%(w1.mean(), SP.nanmean(abs(y.T-SP.outer(w1,x1))).mean()))
     return w1, w2
 
 def update_tau(x1, x2, w1, w2, y, tau_prior_strength, tau_pr_den):
