@@ -39,8 +39,9 @@ gene_hdr specifies the column header of the column containing the gene identifie
 If the count file has a gene column, the count file can be reused here.
 
 outprefix: the output prefix of the JACKS output files. Three output files will be produced.
-    outprefix_gene_JACKS_results.txt contains the gene essentiality scores for each cell line
-    outprefix_grna_JACKS_results.txt contains the gRNA efficacy scores for each guide
+    outprefix_gene_JACKS_results.txt contains the gene essentiality scores E(w) for each cell line
+    outprefix_genestd_JACKS_results.txt contains the standard deviations of the gene essentiality scores std(w) for each cell line
+    outprefix_grna_JACKS_results.txt contains the gRNA efficacy scores E(X) and E(X^2) for each guide
     outprefix_JACKS_full_data.pickle is a pickle file containing the full screen results
 
 example:

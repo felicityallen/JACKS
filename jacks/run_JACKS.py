@@ -60,8 +60,9 @@ if __name__ == '__main__':
         guidemappingfile, sgrna_hdr, gene_hdr = guide_toks   
         
         outprefix = sys.argv[4]
-        if '/' in outprefix and not os.path.isdir(outprefix.split('/')[0]): os.mkdir(outprefix.split('/')[0])
+        if '/' in outprefix and not os.path.exists(os.path.dirname(outprefix)): os.makedirs(os.path.dirname(outprefix))
         outfile_w = outprefix + '_gene_JACKS_results.txt'
+        outfile_w2 = outprefix + '_genestd_JACKS_results.txt'
         outfile_x = outprefix + '_grna_JACKS_results.txt'
         outfile_pickle = outprefix + '_JACKS_results_full.pickle'
         
@@ -88,5 +89,6 @@ if __name__ == '__main__':
         print('Writing JACKS results')
         sample_ids_without_ctrl = [x for x in sample_ids if x != ctrl_sample]
         writeJacksWResults( outfile_w, jacks_results, sample_ids_without_ctrl)
+        writeJacksWResults( outfile_w2, jacks_results, sample_ids_without_ctrl, write_w2=True)
         writeJacksXResults( outfile_x, jacks_results, gene_grnas )
         pickleJacksFullResults( outfile_pickle, jacks_results, sample_ids_without_ctrl, gene_grnas )       
