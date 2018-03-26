@@ -173,7 +173,7 @@ def writeJacksWResults( filename, jacks_results, cell_lines, write_w2=False ):
     fout.write(u'Gene\t%s\n' % ('\t'.join(cell_lines)))
     for w1_mean, gene in ordered_genes:
         if write_w2:
-            w1_str = '\t'.join(['%5e' % np.std(w2 - w1**2.0) for (w1,w2) in zip(jacks_results[gene][4],jacks_results[gene][5])])
+            w1_str = '\t'.join(['%5e' % np.sqrt(w2 - w1**2.0) for (w1,w2) in zip(jacks_results[gene][4],jacks_results[gene][5])])
         else:
             w1_str = '\t'.join(['%5e' % w1 for w1 in jacks_results[gene][4]])
         fout.write(u'%s\t%s\n' % (gene, w1_str))
