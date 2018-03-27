@@ -65,5 +65,20 @@ python run_JACKS_reference.py  example/example_count_data.tab example/example_re
     
 see 2018_paper_materials/README.txt for further examples.
 
+Then, to plot heatmap outputs for a gene of interest
+-----------------------------------------------
 
+python plot_heatmap.py picklefile gene(or "random" to randomly select one) outfile
 
+where:
+
+picklefile:  the pickle file output by run_JACKS.py
+
+gene: the name of a gene to plot the output for (or "random" to select a random one)
+
+outfile: the name of a .png output file to write the figure to
+
+example:
+
+python plot_heatmap.py example_jacks/example_jacks_JACKS_results_full.pickle KRAS example_jacks/KRAS.png
+ 

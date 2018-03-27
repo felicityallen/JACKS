@@ -78,7 +78,7 @@ def infer_JACKS_gene(data, data_err, ctrl, ctrl_err, n_iter, tol=0.1, mu0_x=1, v
         x1 = fixed_x['X1']
         x2 = fixed_x['X2']
 
-    w1 = SP.nanmedian(y, axis=0)
+    w1 = np.nanmedian(y, axis=0)
     
     tau = tau_prior_strength*1.0/tau_pr_den
    
@@ -106,7 +106,7 @@ def update_x(w1, w2, tau, y, mu0_x, var0_x):
     x2 = x1**2 + 1.0/(nandot(tau,w2)+1.0/var0_x)
     wadj = 0.5/len(x1)
     #Normalize by the median-emphasized mean of x
-    x1m = x1.mean() + 2*wadj*SP.nanmedian(x1) - wadj*x1.max() - wadj*x1.min()      
+    x1m = x1.mean() + 2*wadj*np.nanmedian(x1) - wadj*x1.max() - wadj*x1.min()      
     LOG.debug("After X update, <x>=%.1f, mean absolute error=%.3f"%(x1.mean(), SP.nanmean(abs(y.T-SP.outer(w1,x1))).mean()))
     return x1/x1m, x2/x1m/x1m
 

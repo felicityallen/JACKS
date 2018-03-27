@@ -4,18 +4,19 @@ import matplotlib
 import numpy as np
 import scipy as SP
 import pylab as PL
+import scipy.stats as ST
     
 def plot_inference_result(y,w1,w2,x1,x2,tau,cell_lines = [], muts=[], title='', figname='test.png'):
     matplotlib.rcParams.update({'font.size': 12}) 
     fig = PL.figure(figsize=(9,6))
-    gs = gridspec.GridSpec(2, 2, width_ratios=[1.5, 1])   
+    gs = gridspec.GridSpec(2, 2, width_ratios=[len(w1),len(x1)])   
 
     cell_lines = ['LNCaP' if ('LNCaP' in x) else x for x in cell_lines]
     mut_status = ['(M)' if mut=="True" else ('' if mut=="False" else '(U)') for mut in muts]
     
     #Signal
     ax = PL.subplot(gs[0,0])    
-    im = PL.imshow(y, aspect=2.51, interpolation='none', cmap=PL.get_cmap("coolwarm"), vmin=-3, vmax=3)
+    im = PL.imshow(y, aspect=1.15, interpolation='none', cmap=PL.get_cmap("coolwarm"), vmin=-3, vmax=3)
     ax = PL.gca()
     ax.set_xticks([])      
     ax.set_yticks(range(len(x1)))
@@ -56,6 +57,7 @@ def plot_inference_result(y,w1,w2,x1,x2,tau,cell_lines = [], muts=[], title='', 
     PL.xticks([0,1])
     PL.yticks([])
     PL.xlabel("gRNA efficacy")
+    PL.title(title)
 
 
     #w
