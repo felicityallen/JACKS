@@ -192,6 +192,13 @@ def writeJacksXResults( filename, jacks_results, gene_grnas ):
             fout.write(u'%s\t%5e\t%5e\n' % (grna, x1[i], x2[i]))
     fout.close()   
 
+def writeFoldChanges(filename, data, meta, sample_ids, write_std=False):
+    fout = io.open(filename, 'w')
+    fout.write(u'gRNA\tgene\t%s\n' % '\t'.join(sample_ids))
+    for i in range(len(meta[:,0])):
+        fout.write(u'%s\t%s\t%s\n' % (meta[i,0],meta[i,1],'\t'.join(['%6e' % x for x in data[i,:,int(write_std)]])))
+    fout.close()
+    
 def pickleJacksFullResults( filename, jacks_results, cell_lines, gene_grnas ):    
     import pickle
     full_results = [jacks_results, cell_lines, gene_grnas]

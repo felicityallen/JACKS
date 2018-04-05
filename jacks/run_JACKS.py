@@ -1,6 +1,6 @@
 import io, os, csv, random, sys, logging
 from jacks.jacks import infer_JACKS, LOG
-from jacks.io_preprocess import load_data_and_preprocess, writeJacksWResults, writeJacksXResults, pickleJacksFullResults
+from jacks.io_preprocess import load_data_and_preprocess, writeJacksWResults, writeJacksXResults, pickleJacksFullResults, writeFoldChanges
 
 def prepareFile(filename, hdr):
     #Count any lines before the headers (should be skipped)
@@ -64,6 +64,8 @@ if __name__ == '__main__':
         outfile_w = outprefix + '_gene_JACKS_results.txt'
         outfile_w2 = outprefix + '_genestd_JACKS_results.txt'
         outfile_x = outprefix + '_grna_JACKS_results.txt'
+        outfile_lfc = outprefix + '_logfoldchange_means.txt'
+        outfile_lfc_std = outprefix + '_logfoldchange_std.txt'
         outfile_pickle = outprefix + '_JACKS_results_full.pickle'
         
         #Load the specification of samples to include
@@ -78,6 +80,8 @@ if __name__ == '__main__':
         print('Loading data and pre-processing')
         data, meta, sample_ids, genes, gene_index = load_data_and_preprocess(sample_spec, gene_spec)
         gene_grnas = {gene: [x for x in meta[gene_index[gene],0]] for gene in gene_index}
+        writeFoldChanges(outfile_lfc, data, meta, sample_ids)
+        writeFoldChanges(outfile_lfc_std, data, meta, sample_ids, write_std=True)
         
         #Run all samples against the control
         print('Running JACKS inference')
