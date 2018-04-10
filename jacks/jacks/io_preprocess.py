@@ -19,14 +19,17 @@ def window_smooth(x, window=25):
     for k in range(window+1, N-window-1): m[k] = m[k-1] + (x[k+window+1]-x[k-window])/(2*window+1)
     for k in range(N-window-1, N): m[k] = np.mean(x[N-2*window-1:])
     return m
-
-
+    
 """ Simple posterior estimation - use the average variance from 2*window (default 50) gRNAs with nearest means as the estimate if larger than observed. """
 def calc_posterior_sd(data, window=800, do_monotonize=True, window_estimate=True):
 
-    N, I = len(data), np.argsort(data.mean(axis=1))
-    vars = np.nanstd(data[I], axis=1)**2 # observed variances sorted by corresponding means
-    
+    #Sort by means, then (in case of equality) variances
+    dmean_vars = zip(data.mean(axis=1), np.nanstd(data, axis=1)**2)
+    dmean_vars.sort()
+    vars  = np.array([y for (x,y,i) in dmean_vars])
+    I = np.array([i for (x,y,i) in dmean_vars])
+    N = len(data)
+
     # window smoothing of variances
     m = window_smooth(vars, window=window)
     # enforce monotonicity (decreasing variance with log count) if desired
@@ -120,7 +123,6 @@ def subsample_and_preprocess(infile, selected_screens, prior=32, normtype='media
     meta = np.array(meta)
     data = condense_normalised_counts(counts, Iscreens)
     genes, gene_guides = compute_extras(meta, cell_lines)
-   
     return data, meta, cell_lines, genes, gene_guides, test_line_reps
 
 """ Load counts data from a list of one or more files with the same guides (in the same order)
