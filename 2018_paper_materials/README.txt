@@ -4,25 +4,25 @@ Data and Results: Figshare location
 
 Results files can be found at:
 
-https://figshare.com/account/projects/30449/articles/6002438
+https://figshare.com/articles/Results/6002438
 
 Data files can be found at:
 
 yusa_v10:
 
-https://figshare.com/account/projects/30449/articles/6002402
+https://figshare.com/articles/Yusa_V1_0_Data/6002402
 
 gecko2:
 
-https://figshare.com/account/projects/30449/articles/6002408
+https://figshare.com/articles/GeCKOv2_Data/6002408
 
 avana:
 
-https://figshare.com/account/projects/30449/articles/6002417
+https://figshare.com/articles/Avana_Data/6002417
 
 Instructions for re-generating results can be found at:
 
-https://figshare.com/account/projects/30449/articles/6002444
+https://figshare.com/articles/ReadMe_-_How_to_reproduce_results/6002444
 
 To generate results (python and R files in scripts or jacks directory):
 
