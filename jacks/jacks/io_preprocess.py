@@ -24,7 +24,7 @@ def window_smooth(x, window=25):
 def calc_posterior_sd(data, window=800, do_monotonize=True, window_estimate=True):
 
     #Sort by means, then (in case of equality) variances
-    dmean_vars = zip(data.mean(axis=1), np.nanstd(data, axis=1)**2, range(data.shape[0]))
+    dmean_vars = [(x,y,i) for (x,y,i) in zip(data.mean(axis=1), np.nanstd(data, axis=1)**2, range(data.shape[0]))]
     dmean_vars.sort()
     vars  = np.array([y for (x,y,i) in dmean_vars])
     I = np.array([i for (x,y,i) in dmean_vars])
