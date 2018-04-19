@@ -11,8 +11,7 @@ else:
     gene = sys.argv[2]
     outfile = sys.argv[3]
     dirname = os.path.dirname(outfile)
-    if '/' in outfile and not os.path.exists(dirname):
-        os.mkdirs(dirname)
+    if '/' in outfile and not os.path.exists(dirname): os.makedirs(dirname)
     jacks_results, cell_lines, gene_grnas = loadJacksFullResultsFromPickle(picklefile)
 
     if gene == 'random':
