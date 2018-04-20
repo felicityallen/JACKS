@@ -20,12 +20,22 @@ def prepareFile(filename, hdr):
     return f, delim
 
 #output:  {input_filename:[(sample_id, colname)]}
-def createSampleSpec(infile, repfile, rep_hdr, sample_hdr):
+def createSampleSpec(infile, repfile, rep_hdr, sample_hdr, ctrl_sample_or_hdr):
     f, delim = prepareFile(repfile, rep_hdr)
     rdr = csv.DictReader(f, delimiter=delim)
-    sample_spec = {infile:[(row[sample_hdr],row[rep_hdr]) for row in rdr]}
+    sample_spec = {infile:[]}
+    ctrl_per_sample = (ctrl_sample_or_hdr in rdr.fieldnames)
+    ctrl_spec = {}
+    for row in rdr:
+        sample_spec[infile].append((row[sample_hdr],row[rep_hdr])) 
+        if ctrl_per_sample: 
+            if row[sample_hdr] in ctrl_spec:
+                if ctrl_spec[row[sample_hdr]] != row[ctrl_sample_or_hdr]:
+                    err_msg = '%s vs %s for %s\n' % (ctrl_spec[row[sample_hdr]], row[ctrl_sample_or_hdr], row[sample_hdr])
+                    raise Exception(err_msg + 'Different controls for replicates of the sample not supported.')
+            else: ctrl_spec[row[sample_hdr]] = row[ctrl_sample_or_hdr]
     f.close()
-    return sample_spec
+    return sample_spec, ctrl_per_sample, ctrl_spec
     
 #output:  {grna: gene}
 def createGeneSpec(guidemappingfile, sgrna_hdr, gene_hdr):
@@ -41,7 +51,7 @@ if __name__ == '__main__':
     LOG.setLevel(logging.WARNING)
 
     if len(sys.argv) != 5 and len(sys.argv) != 6:
-        print('Usage: run_JACKS.py countfile replicatefile:rep_hdr:sample_hdr:ctrl_sample guidemappingfile:sgrna_hdr:gene_hdr outputprefix apply_w_hp')
+        print('Usage: run_JACKS.py countfile replicatefile:rep_hdr:sample_hdr:ctrl_sample_or_hdr guidemappingfile:sgrna_hdr:gene_hdr outputprefix apply_w_hp')
     else:
 
         #Parse arguments
@@ -51,8 +61,8 @@ if __name__ == '__main__':
 
         rep_toks = sys.argv[2].split(':')
         if len(rep_toks) != 4:
-            raise Exception('Incorrect replicate file input: expecting "replicatefile:rep_hdr:sample_hdr:ctrl_sample" where replicatefile is a csv or tab delimited file mapping replicates to samples, rep_hdr and sample_hdr specify the column headers for the columns containing the replicate labels and sample labels respectively, and ctrl_sample specifies the name of the control sample')
-        replicatefile, rep_hdr, sample_hdr, ctrl_sample = rep_toks
+            raise Exception('Incorrect replicate file input: expecting "replicatefile:rep_hdr:sample_hdr:ctrl_sample_or_hdr" where replicatefile is a csv or tab delimited file mapping replicates to samples, rep_hdr and sample_hdr specify the column headers for the columns containing the replicate labels and sample labels respectively, and ctrl_sample specifies the name of the control sample')
+        replicatefile, rep_hdr, sample_hdr, ctrl_sample_or_hdr = rep_toks
         
         guide_toks = sys.argv[3].split(':')
         if len(guide_toks) != 3:
@@ -70,7 +80,7 @@ if __name__ == '__main__':
         
         #Load the specification of samples to include
         print('Loading sample specification')
-        sample_spec = createSampleSpec(countfile, replicatefile, rep_hdr, sample_hdr)
+        sample_spec, ctrl_per_sample, ctrl_spec = createSampleSpec(countfile, replicatefile, rep_hdr, sample_hdr, ctrl_sample_or_hdr)
         
         #Load the mappings from guides to genes
         print('Loading gene mappings')
@@ -83,15 +93,21 @@ if __name__ == '__main__':
         writeFoldChanges(outfile_lfc, data, meta, sample_ids)
         writeFoldChanges(outfile_lfc_std, data, meta, sample_ids, write_std=True)
         
-        #Run all samples against the control
+        #Run all samples against their controls
         print('Running JACKS inference')
-        ctrldata = data[:,sample_ids.index(ctrl_sample),:]
-        testdata = data[:,[i for i,x in enumerate(sample_ids) if ctrl_sample not in x],:]
+        if ctrl_per_sample:     #Different control samples specified per test sample
+            test_sample_idxs = [i for i,x in enumerate(sample_ids) if ctrl_spec[x] != x]
+            testdata = data[:,test_sample_idxs,:]
+            ctrldata = data[:,[sample_ids.index(ctrl_spec[sample_ids[idx]]) for idx in test_sample_idxs],:]
+        else:                   #Same control sample for all tests
+            ctrldata = data[:,sample_ids.index(ctrl_sample_or_hdr),:]
+            test_sample_idxs = [i for i,x in enumerate(sample_ids) if x != ctrl_sample_or_hdr]
+            testdata = data[:,test_sample_idxs,:]
         jacks_results = infer_JACKS(gene_index, testdata, ctrldata, apply_w_hp=apply_w_hp)
 
         #Write out the results
         print('Writing JACKS results')
-        sample_ids_without_ctrl = [x for x in sample_ids if x != ctrl_sample]
+        sample_ids_without_ctrl = [sample_ids[idx] for idx in test_sample_idxs]
         writeJacksWResults( outfile_w, jacks_results, sample_ids_without_ctrl)
         writeJacksWResults( outfile_w2, jacks_results, sample_ids_without_ctrl, write_w2=True)
         writeJacksXResults( outfile_x, jacks_results, gene_grnas )

@@ -24,12 +24,14 @@ The second column can optionally contain the gene mappings, or not.
 The remaining columns should contain the count data, with the first row containing the column headings, which should be the replicate identifiers, which should match those in the replicate map file.
 Only those columns with an entry in the replicatemap file below will be processed.
 
-replicatemapfile:replicate_hdr:sample_hdr:ctrl_sample (4 items, separated by colons)
+replicatemapfile:replicate_hdr:sample_hdr:ctrl_sample_or_hdr (4 items, separated by colons)
 
 replicatemapfile is a tab or comma (if comma, must end in '.csv') delimited file containing the mappings from replicates to samples.
 The file can contain other columns, replicate_hdr specifies the column header of the column containing the replicate identifiers (matching the column headers in the count file).
 sample_hdr specifies the column header of the column containing the sample mappings for each replicate (i.e. an identifier for the cell line or condition)
-ctrl_sample specifies the sample identifier of the sample which is to be used as a control by JACKS (and which can contain multiple replicates)
+ctrl_sample_or_hdr specifies the sample identifier of the sample which is to be used as a control by JACKS (and which can contain multiple replicates),
+or alternatively ctrl_sample_or_hdr can specify the column header of the column in the replicatemapfile which contains the sample identifiers (as used in the sample_hdr column)
+of the control for each sample (e.g. see example/example_repmap_matched_ctrls.tab).
     
 sgrnamappingfile:sgrna_hdr:gene_hdr (3 items, separated by colons)
 
@@ -44,10 +46,11 @@ outprefix: the output prefix of the JACKS output files. Three output files will 
     outprefix_grna_JACKS_results.txt contains the gRNA efficacy scores E(X) and E(X^2) for each guide
     outprefix_JACKS_full_data.pickle is a pickle file containing the full screen results
 
-example:
+examples:
 
 python run_JACKS.py example/example_count_data.tab example/example_repmap.tab:Replicate:Sample:CTRL example/example_count_data.tab:sgRNA:gene example_jacks/example_jacks
-    
+python run_JACKS.py example/example_count_data.tab example/example_repmap_matched_ctrls.tab:Replicate:Sample:Control example/example_count_data.tab:sgRNA:gene example_jacks/example_jacks
+
     
 OR to run JACKS on new screen with previously used library:
 ----------------------------------------------------------
