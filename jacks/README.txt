@@ -31,7 +31,7 @@ The file can contain other columns, replicate_hdr specifies the column header of
 sample_hdr specifies the column header of the column containing the sample mappings for each replicate (i.e. an identifier for the cell line or condition)
 ctrl_sample_or_hdr specifies the sample identifier of the sample which is to be used as a control by JACKS (and which can contain multiple replicates),
 or alternatively ctrl_sample_or_hdr can specify the column header of the column in the replicatemapfile which contains the sample identifiers (as used in the sample_hdr column)
-of the control for each sample (e.g. see example/example_repmap_matched_ctrls.tab).
+of the control for each sample (e.g. see example/example_repmap_matched_ctrls.tab). For control samples, the control and sample identifiers should be identical.
     
 sgrnamappingfile:sgrna_hdr:gene_hdr (3 items, separated by colons)
 
