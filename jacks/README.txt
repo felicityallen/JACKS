@@ -49,6 +49,7 @@ outprefix: the output prefix of the JACKS output files. Three output files will 
 examples:
 
 python run_JACKS.py example/example_count_data.tab example/example_repmap.tab:Replicate:Sample:CTRL example/example_count_data.tab:sgRNA:gene example_jacks/example_jacks
+
 python run_JACKS.py example/example_count_data.tab example/example_repmap_matched_ctrls.tab:Replicate:Sample:Control example/example_count_data.tab:sgRNA:gene example_jacks/example_jacks
 
     
