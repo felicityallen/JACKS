@@ -22,14 +22,18 @@ def window_smooth(x, window=25):
     
 """ Simple posterior estimation - use the average variance from 2*window (default 50) gRNAs with nearest means as the estimate if larger than observed. """
 def calc_posterior_sd(data, window=800, do_monotonize=True, window_estimate=True):
+    N = len(data)
+    
+    #If there's only one replicate, set variances undefined (nans)
+    if len(data.shape) == 1 or data.shape[1] == 1:
+        return np.zeros(N)*np.nan
 
     #Sort by means, then (in case of equality) variances
     dmean_vars = [(x,y,i) for (x,y,i) in zip(data.mean(axis=1), np.nanstd(data, axis=1)**2, range(data.shape[0]))]
     dmean_vars.sort()
     vars  = np.array([y for (x,y,i) in dmean_vars])
     I = np.array([i for (x,y,i) in dmean_vars])
-    N = len(data)
-
+    
     # window smoothing of variances
     m = window_smooth(vars, window=window)
     # enforce monotonicity (decreasing variance with log count) if desired
@@ -40,7 +44,6 @@ def calc_posterior_sd(data, window=800, do_monotonize=True, window_estimate=True
     for i,idx in enumerate(I):
         sd_post[idx] = max(m[i], vars[i])**0.5 # take the larger of window estimate and actual observation; right hand side all [i], since both m and s2s are sorted
         if window_estimate: sd_post[idx] = m[i]**0.5 # ignore if much larger
-        
     return sd_post  
 
 """ Select a specified number of replicates for each of a selection of screens
