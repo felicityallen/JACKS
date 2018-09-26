@@ -170,10 +170,18 @@ def load_data_and_preprocess(sample_spec, gene_spec, normtype='median', prior=32
 
     return data, meta, sample_ids, genes, gene_guides
 
-def writeJacksWResults( filename, jacks_results, cell_lines, write_w2=False ):
+def getSortedGenes(jacks_results):
     #Sort genes by w1
     ordered_genes = [(np.nanmean(jacks_results[gene][4]),gene) for gene in jacks_results]
     ordered_genes.sort()
+    return ordered_genes
+
+def getGeneWs(jacks_results, gene):
+    return jacks_results[gene][4]
+
+def writeJacksWResults( filename, jacks_results, cell_lines, write_w2=False ):
+    #Sort genes by w1
+    ordered_genes = getSortedGenes(jacks_results)
     fout = io.open(filename, 'w')
     fout.write(u'Gene\t%s\n' % ('\t'.join(cell_lines)))
     for w1_mean, gene in ordered_genes:
