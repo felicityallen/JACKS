@@ -10,6 +10,14 @@ from jacks.io_preprocess import load_data_and_preprocess, writeJacksWResults, wr
     pickleJacksFullResults, writeFoldChanges
 from jacks.jacks import infer_JACKS, LOG
 
+rep_hdr_default = "Replicate"
+sample_hdr_default = "Sample"
+ctrl_sample_or_hdr_default = "CONTROL"
+sgrna_hdr_default = "sgRNA"
+gene_hdr_default = "Gene"
+outprefix_default = ""
+apply_w_hp_default = False
+
 
 def prepareFile(filename, hdr):
     # Count any lines before the headers (should be skipped)
@@ -81,49 +89,47 @@ def get_run_jacks_parser():
                                      help="A CSV or tab delimited file mapping replicates to samples")
     replicatefile_group.add_argument("--rep-hdr",
                                      type=str,
-                                     default="Replicate",
+                                     default=rep_hdr_default,
                                      help="Column header for columns containing the replicate labels")
     replicatefile_group.add_argument("--sample-hdr",
                                      type=str,
-                                     default="Sample",
+                                     default=sample_hdr_default,
                                      help="Column header for columns containing the sample labels")
-    replicatefile_group.add_argument("--ctrl-sample",
+    replicatefile_group.add_argument("--ctrl-sample-or-hdr",
                                      type=str,
-                                     default="CONTROL",
+                                     default=ctrl_sample_or_hdr_default,
                                      help="Name of the control sample")
     guidemapping_group = ap.add_argument_group("Guidemapping file arguments")
     guidemapping_group.add_argument("guidemappingfile",
                                     help="A CSV or tab delimited file mapping guides to genes")
     guidemapping_group.add_argument("--sgrna-hdr",
                                     type=str,
-                                    default="Guide",
+                                    default=sgrna_hdr_default,
                                     help="Column headers for the columns containing the guide labels")
     guidemapping_group.add_argument("--gene-hdr",
                                     type=str,
-                                    default="Gene",
+                                    default=gene_hdr_default,
                                     help="Column headers for the columns containing the gene labels")
     ap.add_argument("--outprefix",
                     type=str,
                     default="",
                     help="Output prefix")
-    settings_group = ap.add_mutually_exclusive_group(required=True)
-    settings_group.add_argument("--reffile",
-                                help="sgRNA_reference_file")
-    settings_group.add_argument("--apply_w_hp",
-                                action='store_true',
-                                default=False,
-                                help="Apply with hp")
+    ap.add_argument("--reffile",
+                    type=str,
+                    default=None,
+                    help="sgRNA_reference_file")
+    ap.add_argument("--apply_w_hp",
+                    action='store_true',
+                    default=False,
+                    help="Apply with hp")
     return ap
 
 
-if __name__ == '__main__':
-
-    LOG.setLevel(logging.WARNING)
-    parser = get_run_jacks_parser()
-    args = parser.parse_args()
-
-    ctrl_sample_or_hdr = args.ctrl_sample
-    outprefix = args.outprefix
+def run_jacks(countfile, replicatefile, guidemappingfile,
+              rep_hdr=rep_hdr_default, sample_hdr=sample_hdr_default, ctrl_sample_or_hdr=ctrl_sample_or_hdr_default,
+              sgrna_hdr=sgrna_hdr_default, gene_hdr=gene_hdr_default,
+              outprefix=outprefix_default, reffile=None, apply_w_hp=apply_w_hp_default):
+    outprefix = outprefix
     if '/' in outprefix and not os.path.exists(os.path.dirname(outprefix)): os.makedirs(os.path.dirname(outprefix))
     outfile_w = outprefix + '_gene_JACKS_results.txt'
     outfile_w2 = outprefix + '_genestd_JACKS_results.txt'
@@ -133,27 +139,27 @@ if __name__ == '__main__':
     outfile_pickle = outprefix + '_JACKS_results_full.pickle'
 
     # Load the specification of samples to include
-    print('Loading sample specification')
-    sample_spec, ctrl_per_sample, ctrl_spec = createSampleSpec(args.countfile, args.replicatefile, args.rep_hdr,
-                                                               args.sample_hdr, ctrl_sample_or_hdr)
+    LOG.info('Loading sample specification')
+    sample_spec, ctrl_per_sample, ctrl_spec = createSampleSpec(countfile, replicatefile, rep_hdr,
+                                                               sample_hdr, ctrl_sample_or_hdr)
 
     # Load the mappings from guides to genes
-    print('Loading gene mappings')
-    gene_spec = createGeneSpec(args.guidemappingfile, args.sgrna_hdr, args.gene_hdr)
+    LOG.info('Loading gene mappings')
+    gene_spec = createGeneSpec(guidemappingfile, sgrna_hdr, gene_hdr)
 
-    sgrna_reference_file = args.reffile
+    sgrna_reference_file = reffile
     if sgrna_reference_file:
         # Load the sgrna reference (precomputed X's)
-        print('Loading sgrna reference values')
-        x_ref = loadSgrnaReference(args.reffile)
+        LOG.info('Loading sgrna reference values')
+        x_ref = loadSgrnaReference(reffile)
         # Check that the data to be loaded have sgrna reference values
-        print('Checking sgrna reference identifiers against gene mappings')
+        LOG.info('Checking sgrna reference identifiers against gene mappings')
         for guide in gene_spec:
             if guide not in x_ref:
                 raise Exception('%s has no sgrna reference in %s' % (guide, sgrna_reference_file))
 
     # Load the data and preprocess
-    print('Loading data and pre-processing')
+    LOG.info('Loading data and pre-processing')
     data, meta, sample_ids, genes, gene_index = load_data_and_preprocess(sample_spec, gene_spec)
     gene_grnas = {gene: [x for x in meta[gene_index[gene], 0]] for gene in gene_index}
     x_reference = None
@@ -166,7 +172,7 @@ if __name__ == '__main__':
         writeFoldChanges(outfile_lfc_std, data, meta, sample_ids, write_std=True)
 
     # Run all samples against their controls
-    print('Running JACKS inference')
+    LOG.info('Running JACKS inference')
     if ctrl_per_sample:  # Different control samples specified per test sample
         test_sample_idxs = [i for i, x in enumerate(sample_ids) if ctrl_spec[x] != x]
         testdata = data[:, test_sample_idxs, :]
@@ -175,12 +181,22 @@ if __name__ == '__main__':
         ctrldata = data[:, sample_ids.index(ctrl_sample_or_hdr), :]
         test_sample_idxs = [i for i, x in enumerate(sample_ids) if x != ctrl_sample_or_hdr]
         testdata = data[:, test_sample_idxs, :]
-    jacks_results = infer_JACKS(gene_index, testdata, ctrldata, apply_w_hp=args.apply_w_hp, fixed_x=x_reference)
+    jacks_results = infer_JACKS(gene_index, testdata, ctrldata, apply_w_hp=apply_w_hp, fixed_x=x_reference)
 
     # Write out the results
-    print('Writing JACKS results')
+    LOG.info('Writing JACKS results')
     sample_ids_without_ctrl = [sample_ids[idx] for idx in test_sample_idxs]
     writeJacksWResults(outfile_w, jacks_results, sample_ids_without_ctrl)
     writeJacksWResults(outfile_w2, jacks_results, sample_ids_without_ctrl, write_w2=True)
     writeJacksXResults(outfile_x, jacks_results, gene_grnas)
     pickleJacksFullResults(outfile_pickle, jacks_results, sample_ids_without_ctrl, gene_grnas)
+
+
+if __name__ == '__main__':
+    LOG.setLevel(logging.INFO)
+    parser = get_run_jacks_parser()
+    args = parser.parse_args()
+    run_jacks(args.countfile, args.replicatefile, args.guidemappingfile,
+              args.rep_hdr, args.sample_hdr, args.ctrl_sample_or_hdr,
+              args.sgrna_hdr, args.gene_hdr,
+              args.outprefix, args.reffile, args.apply_w_hp)
