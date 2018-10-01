@@ -1,3 +1,5 @@
+DEPRECATION WARNING: a command line interface for run_jacks.py changed, one should update commands below according to https://github.com/felicityallen/JACKS/blob/master/jacks/README.md to run them
+
 ---------------------------------------------
 Data and Results: Figshare location
 --------------------------------------------
