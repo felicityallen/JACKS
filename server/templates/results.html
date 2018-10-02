@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}JACKS results{% endblock %}
+{% block content %}
+    <div class="container main-block">
+        <table id="results-table" class="table table-striped table-bordered" style="width:100%">
+            {% for row in table %}
+                <tr>
+                    {% for element in row %}
+                        {% if loop.index0 == 0 %}
+                            <td><a href="{{ request.base_url }}/gene/{{ element }}">{{ element }}</a></td>
+
+                        {% else %}
+                            <td>{{ element }}</td>
+
+                        {% endif %}
+                    {% endfor %}
+
+                </tr>
+
+            {% endfor %}
+
+        </table>
+
+    </div>
+{% endblock content %}

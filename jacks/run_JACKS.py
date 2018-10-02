@@ -17,6 +17,7 @@ sgrna_hdr_default = "sgRNA"
 gene_hdr_default = "Gene"
 outprefix_default = ""
 apply_w_hp_default = False
+pickle_filename = '_JACKS_results_full.pickle'
 
 
 def prepareFile(filename, hdr):
@@ -136,7 +137,7 @@ def run_jacks(countfile, replicatefile, guidemappingfile,
     outfile_x = outprefix + '_grna_JACKS_results.txt'
     outfile_lfc = outprefix + '_logfoldchange_means.txt'
     outfile_lfc_std = outprefix + '_logfoldchange_std.txt'
-    outfile_pickle = outprefix + '_JACKS_results_full.pickle'
+    outfile_pickle = outprefix + pickle_filename
 
     # Load the specification of samples to include
     LOG.info('Loading sample specification')

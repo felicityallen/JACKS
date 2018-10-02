@@ -1,11 +1,11 @@
-import matplotlib.patches as patches
-from matplotlib import gridspec
 import matplotlib
 import numpy as np
-import scipy as SP
 import pylab as PL
+import scipy as SP
 import scipy.stats as ST
-    
+from matplotlib import gridspec
+
+
 def plot_inference_result(y,w1,w2,x1,x2,tau,cell_lines = [], muts=[], title='', figname='test.png'):
     matplotlib.rcParams.update({'font.size': 12}) 
     fig = PL.figure(figsize=(9,6))
@@ -90,7 +90,8 @@ def plot_inference_result(y,w1,w2,x1,x2,tau,cell_lines = [], muts=[], title='', 
         for t in ax.xaxis.get_ticklines(): t.set_visible(False)
 
     PL.subplots_adjust(left=0.08,right=0.94,top=0.82, bottom=0.11, wspace=0.0, hspace=0.0)
-    PL.show(block=False)
     PL.rcParams['svg.fonttype'] = 'none'
-    PL.savefig(figname,bbox_inches='tight')
+    PL.savefig(figname, bbox_inches='tight')
+    PL.show(block=False)
+    return fig
 
