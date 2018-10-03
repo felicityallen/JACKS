@@ -52,14 +52,14 @@ python run_JACKS.py example/example_count_data.tab example/example_repmap.tab ex
 ```
 
 ```
-python run_JACKS.py example/example_count_data.tab example/example_repmap_matched_ctrls example/example_count_data.tab --gene-hdr=gene --outprefix=example_jacks/example_jacks
+python run_JACKS.py example/example_count_data.tab example/example_repmap_matched_ctrls.tab example/example_count_data.tab --gene-hdr=gene --ctrl-sample-or-hdr=Control --outprefix=example_jacks/example_jacks
 ``` 
 
 ## OR to run JACKS on new screen with previously used library
 
 ```bash
 python run_JACKS.py countfile replicatemapfile sgrnamappingfile --rep-hdr=replicate_hdr 
-    --sample-hdr=sample_hdr --ctrl-sample=ctrl_sample --sgrna-hdr=sgrna_hdr --gene-hdr=gene_hdr --reffile=grnaeffiacyfile --outprefix outprefix
+    --sample-hdr=sample_hdr --ctrl-sample-or-hdr=ctrl_sample --sgrna-hdr=sgrna_hdr --gene-hdr=gene_hdr --reffile=grnaeffiacyfile --outprefix outprefix
 ```
 
 all arguments as above except:

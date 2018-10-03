@@ -15,7 +15,7 @@ LOG.setLevel(logging.DEBUG)
          for each element of testdata OR a (num_total_grnas x 2) numpy array containing a common control measurement to
          be used for all conditions.
 @return {gene: y, tau, x1, x2, w1, w2}, the JACKS inference results for each gene in the input gene_index""" 
-def infer_JACKS(gene_index, testdata, ctrldata, fixed_x=None, n_iter=50, apply_w_hp=False):
+def inferJACKS(gene_index, testdata, ctrldata, fixed_x=None, n_iter=50, apply_w_hp=False):
     results = {}
     for gene in gene_index:
         Ig = gene_index[gene]
@@ -23,9 +23,9 @@ def infer_JACKS(gene_index, testdata, ctrldata, fixed_x=None, n_iter=50, apply_w
             gene_fixed_x = {'X1':fixed_x['X1'][Ig], 'X2':fixed_x['X2'][Ig]}
         else: gene_fixed_x = fixed_x
         if testdata.shape == ctrldata.shape: # each line has a matching control:
-            results[gene] = infer_JACKS_gene(testdata[Ig,:,0], testdata[Ig,:,1], ctrldata[Ig,:,0], ctrldata[Ig,:,1], n_iter, fixed_x=gene_fixed_x, apply_w_hp=apply_w_hp)
+            results[gene] = inferJACKSGene(testdata[Ig,:,0], testdata[Ig,:,1], ctrldata[Ig,:,0], ctrldata[Ig,:,1], n_iter, fixed_x=gene_fixed_x, apply_w_hp=apply_w_hp)
         else: # shared control
-            results[gene] = infer_JACKS_gene(testdata[Ig,:,0], testdata[Ig,:,1], ctrldata[Ig,0], ctrldata[Ig,1], n_iter, fixed_x=gene_fixed_x, apply_w_hp=apply_w_hp)
+            results[gene] = inferJACKSGene(testdata[Ig,:,0], testdata[Ig,:,1], ctrldata[Ig,0], ctrldata[Ig,1], n_iter, fixed_x=gene_fixed_x, apply_w_hp=apply_w_hp)
 
     return results
 
@@ -52,7 +52,7 @@ def nandot(x1, x2):
 @param verbose: whether to output debug information [False]
 @return length-G vector X of guide efficacies, length-L vector W of cell line effects, GxL posterior variance estimate of Y, GxL reconstruction error (Y - X x W)
 """
-def infer_JACKS_gene(data, data_err, ctrl, ctrl_err, n_iter, tol=0.1, mu0_x=1, var0_x=1.0, mu0_w=0.0, var0_w=1e4, tau_prior_strength=0.5, fixed_x=None, apply_w_hp = False):
+def inferJACKSGene(data, data_err, ctrl, ctrl_err, n_iter, tol=0.1, mu0_x=1, var0_x=1.0, mu0_w=0.0, var0_w=1e4, tau_prior_strength=0.5, fixed_x=None, apply_w_hp = False):
 
     #Adjust estimated variances if needed
     data_err[SP.isnan(data_err)] = 2.0 # very uncertain if a single replicate
@@ -83,25 +83,37 @@ def infer_JACKS_gene(data, data_err, ctrl, ctrl_err, n_iter, tol=0.1, mu0_x=1, v
     tau = tau_prior_strength*1.0/tau_pr_den
    
     w2 = w1**2
-    bound = lower_bound(x1,x2,w1,w2,y,tau)
+    bound = lowerBound(x1,x2,w1,w2,y,tau)
     LOG.debug("Initially, mean absolute error=%.3f"%(SP.nanmean(abs(y)).mean()))
     LOG.debug("After init, mean absolute error=%.3f, <x>=%.1f <w>=%.1f lower bound=%.1f"%(SP.nanmean(abs(y.T-SP.outer(w1,x1))).mean(), x1.mean(), w1.mean(), bound))
     for i in range(n_iter):
         last_bound = bound
-        if fixed_x is None: x1,x2 = update_x(w1,w2,tau,y,mu0_x,var0_x)
+        if fixed_x is None: x1,x2 = updateX(w1,w2,tau,y,mu0_x,var0_x)
         if apply_w_hp and len(w1) > 1: mu0_w, var0_w = w1.mean(), w1.var()*3+1e-4  # hierarchical update on w (to encourage w's together - use with caution!)
-        w1,w2 = update_w(x1,x2,tau,y,mu0_w,var0_w)
-        tau = update_tau(x1, x2, w1, w2, y, tau_prior_strength, tau_pr_den)
-        bound = lower_bound(x1,x2,w1,w2,y,tau)
+        w1,w2 = updateW(x1,x2,tau,y,mu0_w,var0_w)
+        tau = updateTau(x1, x2, w1, w2, y, tau_prior_strength, tau_pr_den)
+        bound = lowerBound(x1,x2,w1,w2,y,tau)
         LOG.debug("Iter %d/%d. lb: %.1f err: %.3f x:%.2f+-%.2f w:%.2f+-%.2f xw:%.2f"%(i+1, n_iter, bound, SP.nanmean(abs(y.T-SP.outer(w1,x1))).mean(), x1.mean(), SP.median((x2-x1**2)**0.5), w1.mean(), SP.median((w2-w1**2)**0.5), x1.mean()*w1.mean()))
         if abs(last_bound - bound) < tol:
             break
     return y, tau, x1, x2, w1, w2
 
+def getGeneWs(jacks_results, gene):
+    return jacks_results[gene][4]
+
+""" Sort genes in order of mean w1 across cell lines
+@param jacks_results: output of infer_JACKS
+@return list of genes sorted with largest average effects first
+"""
+def getSortedGenes(jacks_results):
+    #Sort genes by w1
+    ordered_genes = [(np.nanmean(jacks_results[gene][4]),gene) for gene in jacks_results]
+    ordered_genes.sort()
+    return ordered_genes
     
 """ Convenience functions following the latex code for variational updates.
 """
-def update_x(w1, w2, tau, y, mu0_x, var0_x):
+def updateX(w1, w2, tau, y, mu0_x, var0_x):
     x1 = (mu0_x/var0_x + nandot((y.T).T*tau,w1))/(nandot(tau,w2) + 1.0/var0_x)
     x2 = x1**2 + 1.0/(nandot(tau,w2)+1.0/var0_x)
     wadj = 0.5/len(x1)
@@ -110,20 +122,20 @@ def update_x(w1, w2, tau, y, mu0_x, var0_x):
     LOG.debug("After X update, <x>=%.1f, mean absolute error=%.3f"%(x1.mean(), SP.nanmean(abs(y.T-SP.outer(w1,x1))).mean()))
     return x1/x1m, x2/x1m/x1m
 
-def update_w(x1, x2, tau, y, mu0_ws, var0_w):
+def updateW(x1, x2, tau, y, mu0_ws, var0_w):
     w1 = (mu0_ws/var0_w + nandot(x1,(y.T).T*tau))/(nandot(x2,tau)+1.0/var0_w)
     w2 = w1**2 + 1.0/(nandot(x2,tau)+1.0/var0_w)
     LOG.debug("After W update, <w>=%.1f, mean absolute error=%.3f"%(w1.mean(), SP.nanmean(abs(y.T-SP.outer(w1,x1))).mean()))
     return w1, w2
 
-def update_tau(x1, x2, w1, w2, y, tau_prior_strength, tau_pr_den):
+def updateTau(x1, x2, w1, w2, y, tau_prior_strength, tau_pr_den):
     b_star = y**2 - 2*y*(SP.outer(x1,w1)) +SP.outer(x2,w2) 
     tau = (tau_prior_strength + 0.5)/(tau_pr_den + 0.5*b_star)   
     return tau
 
-def lower_bound(x1,x2,w1,w2,y,tau):
+def lowerBound(x1,x2,w1,w2,y,tau):
     xw = SP.outer(x1,w1)
     return SP.nansum(tau*(y**2 + SP.outer(x2,w2) -2*xw*y))
     
-    
+
     

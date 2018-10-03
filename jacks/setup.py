@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='jacks',
-      version='0.1',
+      version='0.2',
       description='JACKS package for processing CRISPR/Cas9 Screens',
       url='http://github.com/felicityallen/JACKS',
       author='Felicity Allen and Leopold Parts',
