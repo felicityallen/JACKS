@@ -2,7 +2,7 @@ import argparse
 import os
 import random
 
-from jacks.io_preprocess import loadJacksFullResultsFromPickle
+from jacks.jacks_io import loadJacksFullResultsFromPickle
 from jacks.plot_infer import plot_inference_result
 
 
