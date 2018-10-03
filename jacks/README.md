@@ -21,24 +21,51 @@ where
 * `countfile`  - A tab or comma (if comma, must end in '.csv') delimited file containing the raw counts of each guide in 
 each cell line. 
 The first column should contain the guide ids.
-The second column can optionally contain the gene mappings, or not.
-The remaining columns should contain the count data, with the first row containing the column headings, which should be 
+The remaining columns can contain the count data, with the first row containing the column headings, which should be 
 the replicate identifiers, which should match those in the replicate map file.
-Only those columns with an entry in the `replicatemap` file below will be processed.
+Only those columns with an entry in the `replicatemapfile` file (see below) will be processed, other columns will be ignored.
 
+e.g.
+```
+sgRNA	Control 1 Replicate A	Control 1 Replicate B	Control 2 Replicate A	Control 2 Replicate B	Sample 1 Replicate A	Sample 1 Replicate B	Sample 2 Replicate A	...
+Guide 1	648	557	423	288	475	342	218...
+Guide 2	609	229	990	386	616	218	578...
+Guide 3	481	576	710	390	338	815	1733...
+```
 
 * `replicatemapfile` is a tab or comma (if comma, must end in `.csv`) delimited file containing the mappings from replicates
  to samples. The file can contain other columns, 
-  - `--rep-hdr` specifies the column header of the column containing the replicate identifiers (matching the column headers in the count file). The default value is `Replicate`
-  - `--sample-hdr` specifies the column header of the column containing the sample mappings for each replicate (i.e. an identifier for the cell line or condition). The default value is `Sample` 
-  - `--ctrl-sample-or-hdr` specifies the sample identifier of the sample which is to be used as a control by JACKS
-(and which can contain multiple replicates), or alternatively `--ctrl-sample-or-hdr` can specify the column header of the column in the replicatemapfile which contains the sample identifiers (as used in the `sample_hdr` column) of the control for each sample (e.g. see `example/example_repmap_matched_ctrls.tab`). For control samples, the control and sample identifiers should be identical. The default value is `CONTROL` 
+  - `--rep_hdr` specifies the column header of the column containing the replicate identifiers (matching the column headers in the count file). The default value is `Replicate`. In the example below this would be `Replicate Header`.
+  - `--sample_hdr` specifies the column header of the column containing the sample mappings for each replicate (i.e. an identifier for the cell line or condition). The default value is `Sample`. In the example below this would be `Sample Header`.
+  - `--common_ctrl_sample` For use of a common control sample across all measurements, this field specifies the sample identifier of the sample which is to be used as a control by JACKS for all samples. The default value is `CONTROL`
+  - `--ctrl_sample_hdr` For specifying a different control per sample, this specifies the column header of the column in the replicatemapfile which contains the sample identifiers of the control for each sample (e.g. in the example below this is `Control Header`, or see `example/example_repmap_matched_ctrls.tab`). For control samples, the control and sample identifiers should be identical. The default value is None. 
+
+e.g.
+```
+Replicate Header	Sample Header	Control Header
+Control 1 Replicate A	Control 1	Control 1
+Control 1 Replicate B	Control 1	Control 1
+Control 2 Replicate A	Control 2	Control 2
+Control 2 Replicate B	Control 2	Control 2
+Sample 1 Replicate A	Sample 1	Control 1
+Sample 1 Replicate B	Sample 1 	Control 1
+Sample 2 Replicate A	Sample 2	Control 2
+...
+```
 
 * `sgrnamappingfile` is a tab or comma (if comma, must end in `.csv`) delimited file containing the mappings from guides to genes.
 The file can contain other columns, 
-  - `--sgrna-hdr` specifies the column header of the column containing the guide identifiers. The default vale is `sgRNA`
-  - `--gene-hdr` specifies the column header of the column containing the gene identifiers. The default vale is `Gene`
+  - `--sgrna_hdr` specifies the column header of the column containing the guide identifiers. The default vale is `sgRNA`. In the example below this would be `sgRNA Header`.
+  - `--gene_hdr` specifies the column header of the column containing the gene identifiers. The default vale is `Gene`. In the example below this would be `Gene Header`.
 If the count file has a gene column, the count file can be reused here.
+
+```
+sgRNA Header	Gene Header
+Guide 1	BRAF
+Guide 2	BRAF
+Guide 3	KRAS
+...
+```
 
 * `--outprefix`: the output prefix of the JACKS output files. Three output files will be produced.
   -  `outprefix_gene_JACKS_results.txt` contains the gene essentiality scores E(w) for each cell line

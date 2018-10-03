@@ -5,7 +5,7 @@ from jacks.preprocess import loadDataAndPreprocess, collateTestControlSamples
 
 REP_HDR_DEFAULT = "Replicate"
 SAMPLE_HDR_DEFAULT = "Sample"
-CTRL_SAMPLE_OR_HDR_DEFAULT = "CONTROL"
+COMMON_CTRL_SAMPLE_DEFAULT = "CONTROL"
 SGRNA_HDR_DEFAULT = "sgRNA"
 GENE_HDR_DEFAULT = "Gene"
 OUTPREFIX_DEFAULT = ""
@@ -91,11 +91,13 @@ def prepareFile(filename, hdr):
     return f, delim
 
 #output:  {input_filename:[(sample_id, colname)]}
-def createSampleSpec(infile, repfile, rep_hdr, sample_hdr, ctrl_sample_or_hdr):
+def createSampleSpec(infile, repfile, rep_hdr, sample_hdr, common_ctrl_sample, ctrl_sample_hdr=None):
     f, delim = prepareFile(repfile, rep_hdr)
     rdr = csv.DictReader(f, delimiter=delim)
     sample_spec, sample_num_reps = {infile:[]}, {}
-    ctrl_per_sample = (ctrl_sample_or_hdr in rdr.fieldnames)
+    ctrl_per_sample = not (ctrl_sample_hdr is None)
+    if ctrl_per_sample and ctrl_sample_hdr not in rdr.fieldnames:
+        raise Exception('Could not find column %s specifying controls in %s' % (ctrl_sample_hdr, repfile))
     ctrl_spec = {}
     for row in rdr:
         sample_id, rep_id = row[sample_hdr], row[rep_hdr]
@@ -105,13 +107,15 @@ def createSampleSpec(infile, repfile, rep_hdr, sample_hdr, ctrl_sample_or_hdr):
         sample_spec[infile].append((sample_id, rep_id)) 
         if ctrl_per_sample: 
             if row[sample_hdr] in ctrl_spec:
-                if ctrl_spec[row[sample_hdr]] != row[ctrl_sample_or_hdr]:
+                if ctrl_spec[row[sample_hdr]] != row[ctrl_sample_hdr]:
                     err_msg = '%s vs %s for %s\n' % (ctrl_spec[row[sample_hdr]], row[ctrl_sample_or_hdr], row[sample_hdr])
                     raise Exception(err_msg + 'Different controls for replicates of the sample not supported.')
-            else: ctrl_spec[row[sample_hdr]] = row[ctrl_sample_or_hdr]
+            else: ctrl_spec[row[sample_hdr]] = row[ctrl_sample_hdr]
         else:
-            ctrl_spec[row[sample_hdr]] = ctrl_sample_or_hdr
+            ctrl_spec[row[sample_hdr]] = common_ctrl_sample
     f.close()
+    if not ctrl_per_sample and common_ctrl_sample not in ctrl_spec:
+        raise Exception('Could not find control sample %s in %s' % (common_ctrl_sample, repfile))
     return sample_spec, ctrl_spec, sample_num_reps
     
 #output:  {grna: gene}
@@ -128,7 +132,7 @@ def readGuideset(filename):
     guideset = set([line[:-1] for line in f])
     f.close()
     return guideset
-	
+
 def loadSgrnaReference(filename):
     f = io.open(filename)
     x_ref = {row['sgrna']: row for row in csv.DictReader(f, delimiter='\t')}
@@ -147,26 +151,30 @@ def getJacksParser():
     replicatefile_group = ap.add_argument_group("Replicate file arguments")
     replicatefile_group.add_argument("replicatefile",
                                      help="A CSV or tab delimited file mapping replicates to samples")
-    replicatefile_group.add_argument("--rep-hdr",
+    replicatefile_group.add_argument("--rep_hdr",
                                      type=str,
                                      default=REP_HDR_DEFAULT,
                                      help="Column header for column containing the replicate labels")
-    replicatefile_group.add_argument("--sample-hdr",
+    replicatefile_group.add_argument("--sample_hdr",
                                      type=str,
                                      default=SAMPLE_HDR_DEFAULT,
                                      help="Column header for column containing the sample labels")
-    replicatefile_group.add_argument("--ctrl-sample-or-hdr",
+    replicatefile_group.add_argument("--common_ctrl_sample",
                                      type=str,
-                                     default=CTRL_SAMPLE_OR_HDR_DEFAULT,
-                                     help="Name of the control sample")
+                                     default=COMMON_CTRL_SAMPLE_DEFAULT,
+                                     help="Name of the sample to be used as a control for all other samples")
+    replicatefile_group.add_argument("--ctrl_sample_hdr",
+                                     type=str,
+                                     default=None,
+                                     help="Column header for column containing the sample label for the control to be used for each sample")
     guidemapping_group = ap.add_argument_group("Guidemapping file arguments")
     guidemapping_group.add_argument("guidemappingfile",
                                     help="A CSV or tab delimited file mapping guides to genes")
-    guidemapping_group.add_argument("--sgrna-hdr",
+    guidemapping_group.add_argument("--sgrna_hdr",
                                     type=str,
                                     default=SGRNA_HDR_DEFAULT,
                                     help="Column header for the column containing the guide labels")
-    guidemapping_group.add_argument("--gene-hdr",
+    guidemapping_group.add_argument("--gene_hdr",
                                     type=str,
                                     default=GENE_HDR_DEFAULT,
                                     help="Column header for the column containing the gene labels")
@@ -186,8 +194,8 @@ def getJacksParser():
     return ap
 
 def runJACKS(countfile, replicatefile, guidemappingfile,
-              rep_hdr=REP_HDR_DEFAULT, sample_hdr=SAMPLE_HDR_DEFAULT, ctrl_sample_or_hdr=CTRL_SAMPLE_OR_HDR_DEFAULT,
-              sgrna_hdr=SGRNA_HDR_DEFAULT, gene_hdr=GENE_HDR_DEFAULT,
+              rep_hdr=REP_HDR_DEFAULT, sample_hdr=SAMPLE_HDR_DEFAULT, common_ctrl_sample=COMMON_CTRL_SAMPLE_DEFAULT,
+              ctrl_sample_hdr=None, sgrna_hdr=SGRNA_HDR_DEFAULT, gene_hdr=GENE_HDR_DEFAULT, 
               outprefix=OUTPREFIX_DEFAULT, reffile=None, apply_w_hp=APPLY_W_HP_DEFAULT):
     outprefix = outprefix
     if '/' in outprefix and not os.path.exists(os.path.dirname(outprefix)): os.makedirs(os.path.dirname(outprefix))
@@ -201,7 +209,7 @@ def runJACKS(countfile, replicatefile, guidemappingfile,
     # Load the specification of samples to include
     LOG.info('Loading sample specification')
     sample_spec, ctrl_spec, sample_num_reps = createSampleSpec(countfile, replicatefile, rep_hdr,
-                                                               sample_hdr, ctrl_sample_or_hdr)
+                                                               sample_hdr, common_ctrl_sample, ctrl_sample_hdr)
     # Load the mappings from guides to genes
     LOG.info('Loading gene mappings')
     gene_spec = createGeneSpec(guidemappingfile, sgrna_hdr, gene_hdr)
@@ -247,6 +255,6 @@ def runJACKSFromArgs():
     parser = getJacksParser()
     args = parser.parse_args()
     runJACKS(args.countfile, args.replicatefile, args.guidemappingfile,
-              args.rep_hdr, args.sample_hdr, args.ctrl_sample_or_hdr,
-              args.sgrna_hdr, args.gene_hdr,
+              args.rep_hdr, args.sample_hdr, args.common_ctrl_sample, 
+              args.ctrl_sample_hdr, args.sgrna_hdr, args.gene_hdr, 
               args.outprefix, args.reffile, args.apply_w_hp)

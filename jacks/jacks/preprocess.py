@@ -184,16 +184,20 @@ def subsample_and_preprocess(selected_screens, sample_spec, gene_spec, ctrl_spec
             else: selected_replicates = found_replicates[sample_id]
         else:
             selected_replicates = [random.choice(found_replicates[sample_id]) for i in range(num_rep)]
+
+        ctrl_sample_id = ctrl_spec[sample_id]
+        if sample_id in sample_count:
+            #If using the same sample more than once, give the extra ones a different sample id
+            sample_count[sample_id] += 1 
+            sample_id += ('_%d' % sample_count[sample_id])
+            ctrl_spec[sample_id] = ctrl_sample_id
+        elif ctrl_sample_id != sample_id:
+            sample_count[sample_id] = 0
+
         for filename, colname in selected_replicates:
             if filename not in selected_sample_spec:
                 selected_sample_spec[filename] = []
-            if sample_id in sample_count:
-                #If using the same sample more than once, give the extra ones a different sample id
-                selected_sample_spec[filename].append((sample_id + '_%d' % sample_count[sample_id], colname))
-                sample_count[sample_id] += 1
-            else:
-                selected_sample_spec[filename].append((sample_id, colname))
-                sample_count[sample_id] = 1
+            selected_sample_spec[filename].append((sample_id, colname))
 
     #Load and preprocess data for those replicates
     data, meta, cell_lines, genes, gene_guides = loadDataAndPreprocess(selected_sample_spec, gene_spec, ctrl_spec=ctrl_spec, ctrl_guideset=ctrl_guideset)
