@@ -97,19 +97,6 @@ def inferJACKSGene(data, data_err, ctrl, ctrl_err, n_iter, tol=0.1, mu0_x=1, var
         if abs(last_bound - bound) < tol:
             break
     return y, tau, x1, x2, w1, w2
-
-def getGeneWs(jacks_results, gene):
-    return jacks_results[gene][4]
-
-""" Sort genes in order of mean w1 across cell lines
-@param jacks_results: output of infer_JACKS
-@return list of genes sorted with largest average effects first
-"""
-def getSortedGenes(jacks_results):
-    #Sort genes by w1
-    ordered_genes = [(np.nanmean(jacks_results[gene][4]),gene) for gene in jacks_results]
-    ordered_genes.sort()
-    return ordered_genes
     
 """ Convenience functions following the latex code for variational updates.
 """

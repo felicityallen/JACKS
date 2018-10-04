@@ -1,6 +1,6 @@
 import os, io, random, csv, argparse
 import numpy as np
-from jacks.infer import LOG, getSortedGenes, inferJACKS
+from jacks.infer import LOG, inferJACKS
 from jacks.preprocess import loadDataAndPreprocess, collateTestControlSamples
 
 REP_HDR_DEFAULT = "Replicate"
