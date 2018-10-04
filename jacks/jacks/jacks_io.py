@@ -21,7 +21,7 @@ def getGeneWs(jacks_results, gene):
 """
 def getSortedGenes(jacks_results):
     #Sort genes by w1
-    ordered_genes = [(np.nanmean(jacks_results[gene][4]),gene) for gene in jacks_results]
+    ordered_genes = [(np.nanmean(getGeneWs(jacks_results, gene)), gene) for gene in jacks_results]
     ordered_genes.sort()
     return ordered_genes
 

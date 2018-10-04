@@ -7,7 +7,7 @@
                 <tr>
                     {% for element in row %}
                         {% if loop.index0 == 0 %}
-                            <td><a href="{{ request.base_url }}/gene/{{ element }}">{{ element }}</a></td>
+                            <td><a href="{{ request.base_url }}gene/{{ element }}">{{ element }}</a></td>
 
                         {% else %}
                             <td>{{ element }}</td>

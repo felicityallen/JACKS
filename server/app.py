@@ -1,28 +1,27 @@
 import os
 import uuid
 
-import mpld3 as mpld3
 import wtforms
 from flask import Flask, render_template, request, redirect, url_for
 
-from jacks.io_preprocess import loadJacksFullResultsFromPickle, getSortedGenes, getGeneWs
+from jacks.jacks_io import loadJacksFullResultsFromPickle, getSortedGenes, getGeneWs, runJACKS, PICKLE_FILENAME, \
+    REP_HDR_DEFAULT, SAMPLE_HDR_DEFAULT, SGRNA_HDR_DEFAULT, COMMON_CTRL_SAMPLE_DEFAULT
 from plot_heatmap import plot_heatmap
-from run_JACKS import run_jacks, pickle_filename, rep_hdr_default, sample_hdr_default, ctrl_sample_or_hdr_default, \
-    sgrna_hdr_default, gene_hdr_default, outprefix_default, apply_w_hp_default
 
 app = Flask(__name__, template_folder="templates")
 app.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
 app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
 
+
 # @celery.task(bind=True)
 def send_to_jacks(countfile, replicatefile, guidemappingfile,
-                  rep_hdr, sample_hdr, ctrl_sample_or_hdr,
+                  rep_hdr, sample_hdr, common_ctrl_sample,
                   sgrna_hdr, gene_hdr,
                   outprefix, reffile):
-    run_jacks(countfile, replicatefile, guidemappingfile,
-              rep_hdr, sample_hdr, ctrl_sample_or_hdr,
-              sgrna_hdr, gene_hdr,
-              outprefix, reffile=reffile)
+    runJACKS(countfile, replicatefile, guidemappingfile,
+             rep_hdr, sample_hdr, common_ctrl_sample,
+             sgrna_hdr=sgrna_hdr, gene_hdr=gene_hdr,
+             outprefix=outprefix, reffile=reffile)
     # return analysis_id
     # self.update_state(state='PROGRESS',
     #                   meta={'current': i, 'total': total,
@@ -33,7 +32,8 @@ def send_to_jacks(countfile, replicatefile, guidemappingfile,
 
 
 def get_pickle_file(analysis_id):
-    return os.path.join("results", analysis_id, pickle_filename)
+    return os.path.join("results", analysis_id, PICKLE_FILENAME)
+
 
 class JacksForm(wtforms.Form):
     raw_count_file = wtforms.FileField('Raw count file', default="examples/example_co")
@@ -79,21 +79,22 @@ def start_analysis():
             raw_count_file = grna_gene_map_file = "jacks/example-small/example_count_data.tab"
             replicate_map_file = "jacks/example-small/example_repmap.tab"
             reference_lib = None
-            header_grna = sgrna_hdr_default
+            header_grna = SGRNA_HDR_DEFAULT
             header_gene = 'gene'
-            header_sample = sample_hdr_default
-            header_replicates = rep_hdr_default
-            ctrl_sample_name = 'CTRL'
+            header_sample = SAMPLE_HDR_DEFAULT
+            header_replicates = REP_HDR_DEFAULT
+            common_ctrl_sample = "CTRL"
 
         analysis_id = str(uuid.uuid4()).replace("-", "")[:12] + "/"
         send_to_jacks(countfile=raw_count_file, replicatefile=replicate_map_file, guidemappingfile=grna_gene_map_file,
-                      rep_hdr=header_replicates, sample_hdr=header_sample, ctrl_sample_or_hdr=ctrl_sample_name,
-                      sgrna_hdr=header_grna, gene_hdr=header_gene, outprefix="results/" + analysis_id, reffile=reference_lib)
+                      rep_hdr=header_replicates, sample_hdr=header_sample, common_ctrl_sample=common_ctrl_sample,
+                      sgrna_hdr=header_grna, gene_hdr=header_gene, outprefix="results/" + analysis_id,
+                      reffile=reference_lib)
         return render_template(template, form=form, analysis_id=analysis_id)
     return render_template(template, form=form)
 
 
-@app.route('/results/<analysis_id>', methods=["GET"])
+@app.route('/results/<path:analysis_id>', methods=["GET"])
 def retrieve_results(analysis_id):
     template = "results.html"
     jacks_results, cell_lines, gene_grnas = loadJacksFullResultsFromPickle(get_pickle_file(analysis_id))
@@ -116,6 +117,7 @@ def plot_gene_heatmap(analysis_id, gene):
         return render_template(template, image_path=image_path.replace("server", ""))
     else:
         return render_template(template)
+
 
 if __name__ == '__main__':
     app.run()
