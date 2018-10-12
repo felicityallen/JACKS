@@ -1,6 +1,7 @@
 import os
 import uuid
 
+from celery import Celery
 import wtforms
 from flask import Flask, render_template, request, redirect, url_for
 
@@ -10,10 +11,14 @@ from plot_heatmap import plot_heatmap
 
 app = Flask(__name__, template_folder="templates")
 app.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
+# app.config['CELERY_BROKER_URL'] = 'amqp://guest:guest@localhost:5672/'
 app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
 
+celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'], backend=app.config['CELERY_RESULT_BACKEND'])
+celery.conf.update(app.config)
 
-# @celery.task(bind=True)
+
+@celery.task()
 def send_to_jacks(countfile, replicatefile, guidemappingfile,
                   rep_hdr, sample_hdr, common_ctrl_sample,
                   sgrna_hdr, gene_hdr,
@@ -22,13 +27,6 @@ def send_to_jacks(countfile, replicatefile, guidemappingfile,
              rep_hdr, sample_hdr, common_ctrl_sample,
              sgrna_hdr=sgrna_hdr, gene_hdr=gene_hdr,
              outprefix=outprefix, reffile=reffile)
-    # return analysis_id
-    # self.update_state(state='PROGRESS',
-    #                   meta={'current': i, 'total': total,
-    #                         'status': message})
-    #     time.sleep(1)
-    # return {'current': 100, 'total': 100, 'status': 'Task completed!',
-    #         'result': 42}
 
 
 def get_pickle_file(analysis_id):
@@ -86,7 +84,7 @@ def start_analysis():
             common_ctrl_sample = "CTRL"
 
         analysis_id = str(uuid.uuid4()).replace("-", "")[:12] + "/"
-        send_to_jacks(countfile=raw_count_file, replicatefile=replicate_map_file, guidemappingfile=grna_gene_map_file,
+        send_to_jacks.delay(countfile=raw_count_file, replicatefile=replicate_map_file, guidemappingfile=grna_gene_map_file,
                       rep_hdr=header_replicates, sample_hdr=header_sample, common_ctrl_sample=common_ctrl_sample,
                       sgrna_hdr=header_grna, gene_hdr=header_gene, outprefix="results/" + analysis_id,
                       reffile=reference_lib)
@@ -97,14 +95,18 @@ def start_analysis():
 @app.route('/results/<path:analysis_id>', methods=["GET"])
 def retrieve_results(analysis_id):
     template = "results.html"
-    jacks_results, cell_lines, gene_grnas = loadJacksFullResultsFromPickle(get_pickle_file(analysis_id))
-    table = []
-    sorted_genes = getSortedGenes(jacks_results)
-    for gene in sorted_genes:
-        row = [gene[1], gene[0]]
-        row.extend(getGeneWs(jacks_results, gene[1]))
-        table.append(row)
-    return render_template(template, table=table, cell_lines=cell_lines)
+    picklefile = get_pickle_file(analysis_id)
+    if os.path.isfile(picklefile):
+        jacks_results, cell_lines, gene_grnas = loadJacksFullResultsFromPickle(get_pickle_file(analysis_id))
+        table = []
+        sorted_genes = getSortedGenes(jacks_results)
+        for gene in sorted_genes:
+            row = [gene[1], gene[0]]
+            row.extend(getGeneWs(jacks_results, gene[1]))
+            table.append(row)
+        return render_template(template, table=table, cell_lines=cell_lines)
+    else:
+        return render_template(template)
 
 
 @app.route('/results/<analysis_id>/gene/<gene>', methods=["GET"])
