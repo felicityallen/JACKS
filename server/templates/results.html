@@ -2,24 +2,36 @@
 {% block title %}JACKS results{% endblock %}
 {% block content %}
     <div class="container main-block">
-        <table id="results-table" class="table table-striped table-bordered" style="width:100%">
-            {% for row in table %}
-                <tr>
-                    {% for element in row %}
-                        {% if loop.index0 == 0 %}
-                            <td><a href="{{ request.base_url }}gene/{{ element }}">{{ element }}</a></td>
-
-                        {% else %}
-                            <td>{{ element }}</td>
-
-                        {% endif %}
-                    {% endfor %}
-
-                </tr>
-
-            {% endfor %}
-
-        </table>
+        {% if table %}
+            <table id="results-table" class="table table-striped table-bordered" style="width:100%">
+            	<thead>
+						<tr>
+							<th>Name</th>
+							<th>Position</th>
+							<th>Office</th>
+							<th>Age</th>
+							<th>Start date</th>
+							<th>Salary</th>
+							<th>Sal7ary</th>
+						</tr>
+					</thead>
+                {% for row in table %}
+                    <tbody>
+                    <tr>
+                        {% for element in row %}
+                            {% if loop.index0 == 0 %}
+                                <td><a href="{{ request.base_url }}gene/{{ element }}">{{ element }}</a></td>
+                            {% else %}
+                                <td>{{ element }}</td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                    </tbody>
+                {% endfor %}
+            </table>
+            {% else %}
+            Your results are not ready yet
+        {% endif %}
 
     </div>
 {% endblock content %}
