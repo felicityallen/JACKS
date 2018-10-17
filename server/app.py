@@ -9,12 +9,14 @@ from jacks.jacks_io import loadJacksFullResultsFromPickle, getSortedGenes, getGe
     REP_HDR_DEFAULT, SAMPLE_HDR_DEFAULT, SGRNA_HDR_DEFAULT, COMMON_CTRL_SAMPLE_DEFAULT
 from plot_heatmap import plot_heatmap
 
-app = Flask(__name__, template_folder="templates")
-app.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
-# app.config['CELERY_BROKER_URL'] = 'amqp://guest:guest@localhost:5672/'
-app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = 'CELERY_BROKER_URL'
+CELERY_RESULT_BACKEND = 'CELERY_RESULT_BACKEND'
 
-celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'], backend=app.config['CELERY_RESULT_BACKEND'])
+app = Flask(__name__, template_folder="templates")
+app.config[CELERY_BROKER_URL] = os.getenv(CELERY_BROKER_URL, 'redis://localhost:6379/0')
+app.config[CELERY_RESULT_BACKEND] = os.getenv(CELERY_RESULT_BACKEND, 'redis://localhost:6379/0')
+
+celery = Celery(app.name, broker=app.config[CELERY_BROKER_URL], backend=app.config[CELERY_RESULT_BACKEND])
 celery.conf.update(app.config)
 
 
