@@ -42,7 +42,7 @@ spec:
         app: redis
     spec:
       containers:
-      - image: redis/redis
+      - image: redis
         imagePullPolicy: IfNotPresent
         name: redis
         ports:
@@ -74,4 +74,4 @@ spec:
         - name: CELERY_RESULT_BACKEND
           value: redis://redis.default.svc.cluster.local:6379/0
         command: ["celery"]
-        args: ["-A", "server.app.celery", "worker", "-l", "info"]
+        args: ["-A", "app.celery", "worker", "-l", "info"]

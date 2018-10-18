@@ -9,6 +9,7 @@ from jacks.jacks_io import loadJacksFullResultsFromPickle, getSortedGenes, getGe
     REP_HDR_DEFAULT, SAMPLE_HDR_DEFAULT, SGRNA_HDR_DEFAULT, COMMON_CTRL_SAMPLE_DEFAULT
 from plot_heatmap import plot_heatmap
 
+APP_ROOT = os.path.join(os.path.dirname(__file__), "..")
 CELERY_BROKER_URL = 'CELERY_BROKER_URL'
 CELERY_RESULT_BACKEND = 'CELERY_RESULT_BACKEND'
 
@@ -76,8 +77,8 @@ def start_analysis():
         header_gene = form.header_gene.data
         reference_lib = form.reference_lib.data
         if not raw_count_file:
-            raw_count_file = grna_gene_map_file = "jacks/example-small/example_count_data.tab"
-            replicate_map_file = "jacks/example-small/example_repmap.tab"
+            raw_count_file = grna_gene_map_file = os.path.join(APP_ROOT, "jacks/example-small/example_count_data.tab")
+            replicate_map_file = os.path.join(APP_ROOT, "jacks/example-small/example_repmap.tab")
             reference_lib = None
             header_grna = SGRNA_HDR_DEFAULT
             header_gene = 'gene'
@@ -116,7 +117,7 @@ def plot_gene_heatmap(analysis_id, gene):
     template = "plot.html"
     picklefile = get_pickle_file(analysis_id)
     if os.path.isfile(picklefile):
-        image_path = os.path.join("server", "static", "results", analysis_id, "figure.png")
+        image_path = os.path.join(APP_ROOT, "server", "static", "results", analysis_id, "figure.png")
         plot_heatmap(picklefile, gene, image_path)
         return render_template(template, image_path=image_path.replace("server", ""))
     else:

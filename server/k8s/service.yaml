@@ -21,7 +21,7 @@ metadata:
 spec:
   type: NodePort
   ports:
-  - port:
+  - port: 6379
     targetPort: redis
   selector:
     app: redis
