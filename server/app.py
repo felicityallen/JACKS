@@ -87,10 +87,11 @@ def start_analysis():
             common_ctrl_sample = "CTRL"
 
         analysis_id = str(uuid.uuid4()).replace("-", "")[:12] + "/"
-        send_to_jacks.delay(countfile=raw_count_file, replicatefile=replicate_map_file, guidemappingfile=grna_gene_map_file,
-                      rep_hdr=header_replicates, sample_hdr=header_sample, common_ctrl_sample=common_ctrl_sample,
-                      sgrna_hdr=header_grna, gene_hdr=header_gene, outprefix="results/" + analysis_id,
-                      reffile=reference_lib)
+        send_to_jacks.delay(countfile=raw_count_file, replicatefile=replicate_map_file,
+                            guidemappingfile=grna_gene_map_file,
+                            rep_hdr=header_replicates, sample_hdr=header_sample, common_ctrl_sample=common_ctrl_sample,
+                            sgrna_hdr=header_grna, gene_hdr=header_gene,
+                            outprefix=os.path.join(APP_ROOT, "results/") + analysis_id, reffile=reference_lib)
         return render_template(template, form=form, analysis_id=analysis_id)
     return render_template(template, form=form)
 
