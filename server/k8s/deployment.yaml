@@ -14,7 +14,7 @@ spec:
         app: jacks
     spec:
       containers:
-      - image: quay.io/felicityallen/jacks:v0.1.1
+      - image: quay.io/felicityallen/jacks:v0.1.2
         imagePullPolicy: IfNotPresent
         name: jacks
         volumeMounts:
@@ -28,6 +28,11 @@ spec:
         ports:
         - containerPort: 8005
           name: jacks
+          volumes:
+      volumes:
+      - name: results
+        persistentVolumeClaim:
+          claimName: jacks-pvc
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -68,7 +73,7 @@ spec:
         app: celery
     spec:
       containers:
-      - image: quay.io/felicityallen/jacks:v0.1.1
+      - image: quay.io/felicityallen/jacks:v0.1.2
         imagePullPolicy: IfNotPresent
         name: jacks
         volumeMounts:
@@ -81,3 +86,7 @@ spec:
           value: redis://redis.default.svc.cluster.local:6379/0
         command: ["celery"]
         args: ["-A", "app.celery", "worker", "-l", "info"]
+      volumes:
+      - name: results
+        persistentVolumeClaim:
+          claimName: jacks-pvc
