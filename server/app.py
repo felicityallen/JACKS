@@ -33,7 +33,7 @@ def send_to_jacks(countfile, replicatefile, guidemappingfile,
 
 
 def get_pickle_file(analysis_id):
-    return os.path.join("results", analysis_id, PICKLE_FILENAME)
+    return os.path.join(APP_ROOT, "results", analysis_id, PICKLE_FILENAME)
 
 
 class JacksForm(wtforms.Form):
@@ -118,9 +118,10 @@ def plot_gene_heatmap(analysis_id, gene):
     template = "plot.html"
     picklefile = get_pickle_file(analysis_id)
     if os.path.isfile(picklefile):
-        image_path = os.path.join(APP_ROOT, "server", "static", "results", analysis_id, "figure.png")
-        plot_heatmap(picklefile, gene, image_path)
-        return render_template(template, image_path=image_path.replace("server", ""))
+        image_path = os.path.join("static", "results", analysis_id, "figure.png")
+        full_image_path = os.path.join(APP_ROOT, "server", image_path)
+        plot_heatmap(picklefile, gene, full_image_path)
+        return render_template(template, image_path=image_path)
     else:
         return render_template(template)
 
