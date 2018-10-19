@@ -76,9 +76,8 @@
         <div class="plot">
             {% if analysis_id %}
             Analysis is in progress. When it finishes, the results will be available through this link:
-                {% set analysis_link = request.url_root[:-1] + url_for("retrieve_results", analysis_id=analysis_id) %}
+                {% set analysis_link = request.url_root[:-1] + url_for("jacks.retrieve_results", analysis_id=analysis_id) %}
                 <a href="{{ analysis_link }}">{{ analysis_link }}</a>
-{#                <a href="{{ request.url_root }}{{ url_for("retrieve_results", analysis_id=analysis_id) }}">{{ request.url_root }}/{{ url_for("retrieve_results", analysis_id=analysis_id) }}</a>#}
             {% endif %}
 
         </div>

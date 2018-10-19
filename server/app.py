@@ -1,18 +1,19 @@
 import os
 import uuid
 
-from celery import Celery
 import wtforms
-from flask import Flask, render_template, request, redirect, url_for
+from celery import Celery
+from flask import Flask, render_template, request, Blueprint, redirect, url_for
 
 from jacks.jacks_io import loadJacksFullResultsFromPickle, getSortedGenes, getGeneWs, runJACKS, PICKLE_FILENAME, \
-    REP_HDR_DEFAULT, SAMPLE_HDR_DEFAULT, SGRNA_HDR_DEFAULT, COMMON_CTRL_SAMPLE_DEFAULT
+    REP_HDR_DEFAULT, SAMPLE_HDR_DEFAULT, SGRNA_HDR_DEFAULT
 from plot_heatmap import plot_heatmap
 
 APP_ROOT = os.path.join(os.path.dirname(__file__), "..")
 CELERY_BROKER_URL = 'CELERY_BROKER_URL'
 CELERY_RESULT_BACKEND = 'CELERY_RESULT_BACKEND'
 
+bp = Blueprint('jacks', __name__)
 app = Flask(__name__, template_folder="templates")
 app.config[CELERY_BROKER_URL] = os.getenv(CELERY_BROKER_URL, 'redis://localhost:6379/0')
 app.config[CELERY_RESULT_BACKEND] = os.getenv(CELERY_RESULT_BACKEND, 'redis://localhost:6379/0')
@@ -59,10 +60,10 @@ class JacksForm(wtforms.Form):
 
 @app.route('/')
 def hello():
-    return redirect(url_for('start_analysis'))
+    return redirect(url_for('jacks.start_analysis'))
 
 
-@app.route('/JACKS', methods=["GET", "POST"])
+@bp.route('/', methods=["GET", "POST"])
 def start_analysis():
     template = "index.html"
     form = JacksForm(request.form)
@@ -96,7 +97,7 @@ def start_analysis():
     return render_template(template, form=form)
 
 
-@app.route('/results/<path:analysis_id>', methods=["GET"])
+@bp.route('/results/<path:analysis_id>', methods=["GET"])
 def retrieve_results(analysis_id):
     template = "results.html"
     picklefile = get_pickle_file(analysis_id)
@@ -113,7 +114,7 @@ def retrieve_results(analysis_id):
         return render_template(template)
 
 
-@app.route('/results/<analysis_id>/gene/<gene>', methods=["GET"])
+@bp.route('/results/<analysis_id>/gene/<gene>', methods=["GET"])
 def plot_gene_heatmap(analysis_id, gene):
     template = "plot.html"
     picklefile = get_pickle_file(analysis_id)
@@ -125,6 +126,8 @@ def plot_gene_heatmap(analysis_id, gene):
     else:
         return render_template(template)
 
+
+app.register_blueprint(bp, url_prefix='/JACKS')
 
 if __name__ == '__main__':
     app.run()
