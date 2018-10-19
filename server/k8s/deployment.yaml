@@ -14,7 +14,7 @@ spec:
         app: jacks
     spec:
       containers:
-      - image: quay.io/felicityallen/jacks:v0.1.2
+      - image: quay.io/felicityallen/jacks:v0.1.4
         imagePullPolicy: IfNotPresent
         name: jacks
         volumeMounts:
@@ -73,7 +73,7 @@ spec:
         app: celery
     spec:
       containers:
-      - image: quay.io/felicityallen/jacks:v0.1.2
+      - image: quay.io/felicityallen/jacks:v0.1.4
         imagePullPolicy: IfNotPresent
         name: jacks
         volumeMounts:
