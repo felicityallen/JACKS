@@ -17,7 +17,6 @@
 
 </head>
 <body>
-
 {% macro show_errors(field) %}
   {% if field.errors %}
     <ul class=errors>
@@ -28,8 +27,15 @@
   {% endif %}
 {% endmacro %}
 
+<div class="content">
 {% block content %}
 
 {%  endblock content %}
+</div>
+<footer class="container main-block">
+    <img src="{{ url_for('static', filename='sanger_logo.jpg') }}" style="width:20%">
+    <p>This site is hosted by the <a href="http://www.sanger.ac.uk/">Wellcome Sanger Institute</a><br><a href="http://www.sanger.ac.uk/legal/">Terms &amp; Conditions</a> & <a href="http://www.sanger.ac.uk/legal/cookiespolicy.html">Cookies policy</a></p>
+</footer>
+
 </body>
 </html>
