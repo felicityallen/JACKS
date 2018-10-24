@@ -38,7 +38,7 @@ def get_pickle_file(analysis_id):
 
 
 class JacksForm(wtforms.Form):
-    raw_count_file = wtforms.FileField('Raw count file', default="examples/example_co")
+    raw_count_file = wtforms.FileField('Raw count file')
     replicate_map_file = wtforms.FileField('Replicate map field')
     header_replicates = wtforms.StringField('Header for replicates')
     header_sample = wtforms.StringField('Header for sample')
