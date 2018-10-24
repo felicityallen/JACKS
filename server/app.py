@@ -14,7 +14,7 @@ CELERY_BROKER_URL = 'CELERY_BROKER_URL'
 CELERY_RESULT_BACKEND = 'CELERY_RESULT_BACKEND'
 
 bp = Blueprint('jacks', __name__)
-app = Flask(__name__, template_folder="templates")
+app = Flask(__name__, template_folder="templates", static_url_path="/JACKS/static")
 app.config[CELERY_BROKER_URL] = os.getenv(CELERY_BROKER_URL, 'redis://localhost:6379/0')
 app.config[CELERY_RESULT_BACKEND] = os.getenv(CELERY_RESULT_BACKEND, 'redis://localhost:6379/0')
 
@@ -119,10 +119,10 @@ def plot_gene_heatmap(analysis_id, gene):
     template = "plot.html"
     picklefile = get_pickle_file(analysis_id)
     if os.path.isfile(picklefile):
-        image_path = os.path.join("static", "results", analysis_id, "figure.png")
-        full_image_path = os.path.join(APP_ROOT, "server", image_path)
+        image_path = os.path.join("results", analysis_id, "figure.png")
+        full_image_path = os.path.join(APP_ROOT, "server", "static", image_path)
         plot_heatmap(picklefile, gene, full_image_path)
-        return render_template(template, image_path='/' + image_path)
+        return render_template(template, image_path=url_for('static', filename=image_path))
     else:
         return render_template(template)
 

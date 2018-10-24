@@ -14,6 +14,7 @@ ENV PYTHONPATH="/app/jacks:/app/server"
 ENV FLASK_DEBUG 1
 ENV UWSGI_INI /app/server/uwsgi.ini
 ENV STATIC_PATH /app/server/static
+ENV STATIC_URL /JACKS/static
 WORKDIR /app/server
 
 EXPOSE 8005
