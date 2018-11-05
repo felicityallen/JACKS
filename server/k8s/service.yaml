@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jacks
+  labels:
+    app: jacks
+spec:
+  type: NodePort
+  ports:
+  - port: 8005
+    targetPort: jacks
+  selector:
+    app: jacks
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  labels:
+    app: redis
+spec:
+  type: NodePort
+  ports:
+  - port: 6379
+    targetPort: redis
+  selector:
+    app: redis

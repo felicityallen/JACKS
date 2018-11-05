@@ -2,4 +2,4 @@ flask
 jinja2
 wtforms
 celery
-mpld3
+redis

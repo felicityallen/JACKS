@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jacks
+spec:
+  selector:
+    matchLabels:
+      app: jacks
+  replicas: 1
+  template:
+    metadata:
+      name: jacks
+      labels:
+        app: jacks
+    spec:
+      containers:
+      - image: quay.io/felicityallen/jacks:v0.1.7
+        imagePullPolicy: IfNotPresent
+        name: jacks
+        volumeMounts:
+        - name: results
+          mountPath: /app/results
+        env:
+        - name: CELERY_BROKER_URL
+          value: redis://redis.default.svc.cluster.local:6379/0
+        - name: CELERY_RESULT_BACKEND
+          value: redis://redis.default.svc.cluster.local:6379/0
+        ports:
+        - containerPort: 8005
+          name: jacks
+          volumes:
+      volumes:
+      - name: results
+        persistentVolumeClaim:
+          claimName: jacks-pvc
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  replicas: 1
+  template:
+    metadata:
+      name: redis
+      labels:
+        app: redis
+    spec:
+      containers:
+      - image: redis
+        imagePullPolicy: IfNotPresent
+        name: redis
+        ports:
+        - containerPort: 6379
+          name: redis
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery
+spec:
+  selector:
+    matchLabels:
+      app: celery
+  replicas: 1
+  template:
+    metadata:
+      name: celery
+      labels:
+        app: celery
+    spec:
+      containers:
+      - image: quay.io/felicityallen/jacks:v0.1.7
+        imagePullPolicy: IfNotPresent
+        name: jacks
+        volumeMounts:
+        - name: results
+          mountPath: /app/results
+        env:
+        - name: CELERY_BROKER_URL
+          value: redis://redis.default.svc.cluster.local:6379/0
+        - name: CELERY_RESULT_BACKEND
+          value: redis://redis.default.svc.cluster.local:6379/0
+        command: ["celery"]
+        args: ["-A", "app.celery", "worker", "-l", "info"]
+      volumes:
+      - name: results
+        persistentVolumeClaim:
+          claimName: jacks-pvc
