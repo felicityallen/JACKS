@@ -22,11 +22,9 @@ def inferJACKS(gene_index, testdata, ctrldata, fixed_x=None, n_iter=50, apply_w_
         if fixed_x is not None:
             gene_fixed_x = {'X1':fixed_x['X1'][Ig], 'X2':fixed_x['X2'][Ig]}
         else: gene_fixed_x = fixed_x
-        if testdata.shape == ctrldata.shape: # each line has a matching control:
-            results[gene] = inferJACKSGene(testdata[Ig,:,0], testdata[Ig,:,1], ctrldata[Ig,:,0], ctrldata[Ig,:,1], n_iter, fixed_x=gene_fixed_x, apply_w_hp=apply_w_hp)
-        else: # shared control
-            results[gene] = inferJACKSGene(testdata[Ig,:,0], testdata[Ig,:,1], ctrldata[Ig,0], ctrldata[Ig,1], n_iter, fixed_x=gene_fixed_x, apply_w_hp=apply_w_hp)
-
+        if testdata.shape != ctrldata.shape: # each line has a matching control:
+            raise Exception('Expecting matched size between control and test data')
+        results[gene] = inferJACKSGene(testdata[Ig,:,0], testdata[Ig,:,1], ctrldata[Ig,:,0], ctrldata[Ig,:,1], n_iter, fixed_x=gene_fixed_x, apply_w_hp=apply_w_hp)
     return results
 
 """ Convenience function for matrix-vector and vector-vector dot products, ignoring Nans
@@ -58,9 +56,9 @@ def inferJACKSGene(data, data_err, ctrl, ctrl_err, n_iter, tol=0.1, mu0_x=1, var
     data_err[SP.isnan(data_err)] = 2.0 # very uncertain if a single replicate
 
     #The control can be specified once for each sample, or common across all cell lines
-    if len(ctrl.shape) == 1 or ctrl.shape[1] == 1: 
+    if ctrl.shape != data.shape: 
         #If only 1 control replicate, use mean variance from data across cell lines for that guide 
-        ctrl_err[SP.isnan(ctrl_err)] = SP.nanmean(data_err, axis=1)[SP.isnan(ctrl_err)]
+        ctrl_err[SP.isnan(ctrl_err)] = SP.nanmean(data_err, axis=1).reshape(SP.isnan(ctrl_err).shape)[SP.isnan(ctrl_err)]
         y = (data.T - ctrl).T
         tau_pr_den = tau_prior_strength*1.0*((data_err**2).T + ctrl_err**2 + 1e-2).T
     else:
