@@ -6,8 +6,7 @@
         <div class="row">
         <div class="col content">
             <h2>JACKS</h2>
-            <!--<h5>Computational prediction of editing outcomes resulting from Cas9-induced double strand breaks</h5>-->
-            <form action="" method="post" class="main-form">
+            <form action="" enctype="multipart/form-data" method="post" class="main-form">
                 <div class="form-group">
                     {{ form.raw_count_file.label }} {{ form.raw_count_file }}
                     <!--<p class="example">e.g. 'ATGCTAGCTAGGGCATGAGGCATGCTAGTGACTGCATGGTAC'</p>-->
@@ -49,11 +48,11 @@
                     {{ show_errors(form.header_gene) }}
                 </div>
                 <div class="form-group">
-                    {{ form.use_reference_lib.label }} {{ form.use_reference_lib }}
-                    <!--<p class="example">e.g. '17'</p>-->
+                    {{ form.use_reference_lib.label }}
+                    {{ form.use_reference_lib }}
                     {{ show_errors(form.use_reference_lib) }}
                 </div>
-                <div class="form-group">
+                <div class="form-group" id="reference-lib-block">
                     {{ form.reference_lib.label }} {{ form.reference_lib }}
                     <!--<p class="example">e.g. '17'</p>-->
                     {{ show_errors(form.reference_lib) }}
