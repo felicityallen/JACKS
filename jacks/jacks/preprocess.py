@@ -3,6 +3,8 @@ import io
 import random, csv
 import numpy as np
 
+from jacks.infer import LOG
+
 """ Ensures monotonicity of x"""
 def monotonize(x):
     N = len(x)

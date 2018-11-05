@@ -1,4 +1,5 @@
 import os
+import traceback
 import uuid
 
 import wtforms
@@ -7,8 +8,8 @@ from flask import Flask, render_template, request, Blueprint, redirect, url_for
 from werkzeug.utils import secure_filename
 from wtforms.validators import DataRequired
 
-from jacks.jacks_io import loadJacksFullResultsFromPickle, getSortedGenes, getGeneWs, runJACKS, PICKLE_FILENAME, \
-    REP_HDR_DEFAULT, SAMPLE_HDR_DEFAULT, SGRNA_HDR_DEFAULT, GENE_HDR_DEFAULT
+from jacks.jacks_io import loadJacksFullResultsFromPickle, getSortedGenes, getGeneWs, PICKLE_FILENAME, \
+    REP_HDR_DEFAULT, SAMPLE_HDR_DEFAULT, SGRNA_HDR_DEFAULT, GENE_HDR_DEFAULT, preprocess, load_data_and_run
 from plot_heatmap import plot_heatmap
 
 APP_ROOT = os.path.dirname(os.path.dirname(__file__))
@@ -37,15 +38,21 @@ REFERENCE_LIB_DICT = {
     AVANA: os.path.join(APP_ROOT, 'reference_grna_efficacies', 'avana_grna_JACKS_results.txt'),
 }
 
+
 @celery.task()
-def send_to_jacks(countfile, replicatefile, guidemappingfile,
+def run_analysis(sample_spec, gene_spec, ctrl_spec, reffile, x_ref, outprefix):
+    load_data_and_run(sample_spec, gene_spec, ctrl_spec, reffile, x_ref, outprefix)
+
+
+def run_jacks_async(countfile, replicatefile, guidemappingfile,
                   rep_hdr, sample_hdr, common_ctrl_sample,
                   sgrna_hdr, gene_hdr,
                   outprefix, reffile):
-    runJACKS(countfile, replicatefile, guidemappingfile,
+    sample_spec, ctrl_spec, gene_spec, x_ref = preprocess(countfile, replicatefile, guidemappingfile,
              rep_hdr, sample_hdr, common_ctrl_sample,
              sgrna_hdr=sgrna_hdr, gene_hdr=gene_hdr,
              outprefix=outprefix, reffile=reffile)
+    run_analysis.delay(sample_spec, gene_spec, ctrl_spec, reffile, x_ref, outprefix)
 
 
 def get_pickle_file(analysis_id):
@@ -106,11 +113,14 @@ def start_analysis():
             file_path = get_file(file)
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             f.save(file_path)
-        send_to_jacks.delay(countfile=raw_count_file, replicatefile=replicate_map_file,
-                            guidemappingfile=grna_gene_map_file,
-                            rep_hdr=header_replicates, sample_hdr=header_sample, common_ctrl_sample=common_ctrl_sample,
-                            sgrna_hdr=header_grna, gene_hdr=header_gene,
-                            outprefix=os.path.join(ANALYSIS_FOLDER, analysis_id), reffile=reference_lib)
+        try:
+            run_jacks_async(countfile=raw_count_file, replicatefile=replicate_map_file,
+                                guidemappingfile=grna_gene_map_file,
+                                rep_hdr=header_replicates, sample_hdr=header_sample, common_ctrl_sample=common_ctrl_sample,
+                                sgrna_hdr=header_grna, gene_hdr=header_gene,
+                                outprefix=os.path.join(ANALYSIS_FOLDER, analysis_id), reffile=reference_lib)
+        except Exception as e:
+            return render_template(template, form=form, error_message=traceback.format_exc().splitlines()[-1])
         return render_template(template, form=form, analysis_id=analysis_id)
     return render_template(template, form=form)
 
