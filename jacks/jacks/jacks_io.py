@@ -11,6 +11,8 @@ GENE_HDR_DEFAULT = "gene"
 OUTPREFIX_DEFAULT = ""
 APPLY_W_HP_DEFAULT = False
 PICKLE_FILENAME = '_JACKS_results_full.pickle'
+GENE_FILENAME = '_gene_JACKS_results.txt'
+GRNA_FILENAME = '_grna_JACKS_results.txt'
 
 
 def getGeneWs(jacks_results, gene):
@@ -243,9 +245,9 @@ def load_data_and_run(sample_spec, gene_spec, ctrl_spec, sgrna_reference_file, x
                       outprefix, apply_w_hp=APPLY_W_HP_DEFAULT):
     outprefix = outprefix
     if '/' in outprefix and not os.path.exists(os.path.dirname(outprefix)): os.makedirs(os.path.dirname(outprefix))
-    outfile_w = outprefix + '_gene_JACKS_results.txt'
+    outfile_w = outprefix + GENE_FILENAME
     outfile_w2 = outprefix + '_genestd_JACKS_results.txt'
-    outfile_x = outprefix + '_grna_JACKS_results.txt'
+    outfile_x = outprefix + GRNA_FILENAME
     outfile_lfc = outprefix + '_logfoldchange_means.txt'
     outfile_lfc_std = outprefix + '_logfoldchange_std.txt'
     outfile_pickle = outprefix + PICKLE_FILENAME

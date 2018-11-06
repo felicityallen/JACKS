@@ -4,7 +4,12 @@
     <div class="container main-block">
         {% if table %}
             <table id="results-table" class="table table-striped table-bordered" style="width:100%">
-                <thead>
+                <colgroup>
+                    <col class="gene-col"/>
+                    <col class="mean-col"/>
+                    <col class="cell-lines-col" span="200"/>
+                </colgroup>
+                <thead class="table-headers">
                 <tr>
                     <th>Gene</th>
                     <th>Mean</th>
@@ -18,15 +23,20 @@
                     <tr>
                         {% for element in row %}
                             {% if loop.index0 == 0 %}
-                                <td><a href="{{ request.base_url }}gene/{{ element }}">{{ element }}</a></td>
+                                <td><a class="gene-table-name"
+                                       href="{{ request.base_url }}gene/{{ element }}">{{ element }}</a></td>
                             {% else %}
-                                <td>{{ element }}</td>
+                                <td>{{ "%.4f"|format(element) }}</td>
                             {% endif %}
                         {% endfor %}
                     </tr>
                 {% endfor %}
                 </tbody>
             </table>
+            <div class="download">
+                <button type="button" class="btn btn-danger download-btn" value="grna">Download gRNA file</button>
+                <button type="button" class="btn btn-danger download-btn" value="gene">Download Genes file</button>
+            </div>
         {% else %}
             Your results are not ready yet
         {% endif %}
