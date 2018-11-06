@@ -13,11 +13,6 @@ $(document).ready(function () {
     });
 });
 
-
 $(document).ready(function () {
     $('#results-table').DataTable();
 });
-
-$(document).ready(function() {
-    $('#example').DataTable();
-} );

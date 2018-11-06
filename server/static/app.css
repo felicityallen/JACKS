@@ -1,22 +1,32 @@
-html, body {
-  height: 100%;
-}
-body {
-  display: flex;
-  flex-direction: column;
-}
-.content {
-  flex: 1 0 auto;
-}
-footer {
-  flex-shrink: 0;
-}
 #logo {
     color: #000000;
     text-decoration: none;
 }
 
-.logo-block{
+.logo-block {
     margin-top: 15px;
     margin-bottom: 15px;
+}
+
+.analysis-status {
+    margin-top: 10px;
+}
+
+/* sticky footer settings */
+
+html, body {
+    height: 100%;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+.content {
+    flex: 1 0 auto;
+}
+
+footer {
+    flex-shrink: 0;
 }

@@ -20,7 +20,7 @@ MB = 1024 * 1024
 
 bp = Blueprint('jacks', __name__)
 app = Flask(__name__, template_folder="templates", static_url_path="/JACKS/static")
-app.config['MAX_CONTENT_LENGTH'] = 32 * MB
+app.config['MAX_CONTENT_LENGTH'] = 400 * MB
 app.config[CELERY_BROKER_URL] = os.getenv(CELERY_BROKER_URL, 'redis://localhost:6379/0')
 app.config[CELERY_RESULT_BACKEND] = os.getenv(CELERY_RESULT_BACKEND, 'redis://localhost:6379/0')
 

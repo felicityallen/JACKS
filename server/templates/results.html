@@ -4,15 +4,15 @@
     <div class="container main-block">
         {% if table %}
             <table id="results-table" class="table table-striped table-bordered" style="width:100%">
-            	<thead>
-						<tr>
-							<th>Gene</th>
-                            <th>Mean</th>
-							{% for cell_line in cell_lines %}
-                            <th>{{ cell_line }}</th>
-                            {% endfor %}
-						</tr>
-					</thead>
+                <thead>
+                <tr>
+                    <th>Gene</th>
+                    <th>Mean</th>
+                    {% for cell_line in cell_lines %}
+                        <th>{{ cell_line }}</th>
+                    {% endfor %}
+                </tr>
+                </thead>
                 <tbody>
                 {% for row in table %}
                     <tr>
@@ -27,7 +27,7 @@
                 {% endfor %}
                 </tbody>
             </table>
-            {% else %}
+        {% else %}
             Your results are not ready yet
         {% endif %}
 
