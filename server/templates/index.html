@@ -5,7 +5,6 @@
         <!--<img src="{{ url_for('static', filename='forecast_3.png') }}" class="logo" alt="Forecast">-->
         <div class="row">
         <div class="col content">
-            <h2>JACKS</h2>
             <form action="" enctype="multipart/form-data" method="post" class="main-form">
                 <div class="form-group">
                     {{ form.raw_count_file.label }} {{ form.raw_count_file }}
@@ -56,11 +55,6 @@
                     {{ form.reference_lib.label }} {{ form.reference_lib }}
                     <!--<p class="example">e.g. '17'</p>-->
                     {{ show_errors(form.reference_lib) }}
-                </div>
-                <div class="form-group">
-                    {{ form.max_genes_display.label }} {{ form.max_genes_display }}
-                    <!--<p class="example">e.g. '17'</p>-->
-                    {{ show_errors(form.max_genes_display) }}
                 </div>
                 <button type="submit" class="btn btn-primary" id="submit-seq">Go</button>
                 <!--<button type="button" class="btn btn-success" hidden="True"-->

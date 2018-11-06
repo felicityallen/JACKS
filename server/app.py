@@ -78,7 +78,6 @@ class JacksForm(wtforms.Form):
                                                  # ('whitehead', 'Whitehead'),
                                                  # ('toronto', 'Toronto Knockout')],
                                                  default="")
-    max_genes_display = wtforms.IntegerField('Max genes to display', default=20)
 
 
 @app.route('/')

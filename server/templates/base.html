@@ -2,39 +2,51 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-     <title>{% block title %}
-{% endblock title %}</title>
+    <title>{% block title %}
+    {% endblock title %}</title>
+    <link rel="stylesheet" type="text/css"
+          href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.1/css/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/dataTables.bootstrap4.min.css">
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"
+            integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T"
+            crossorigin="anonymous"></script>
     <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.3.1.min.js"></script>
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
-
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs4/dt-1.10.18/datatables.min.css"/>
-<script type="text/javascript" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
-<script type="text/javascript" src="https://cdn.datatables.net/1.10.19/js/dataTables.bootstrap4.min.js"></script>
-<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
-<script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/1.10.19/js/dataTables.bootstrap4.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
 
 
 </head>
 <body>
 {% macro show_errors(field) %}
-  {% if field.errors %}
-    <ul class=errors>
-    {% for error in field.errors %}
-      <li>{{ error }}</li>
-    {% endfor %}
-    </ul>
-  {% endif %}
+    {% if field.errors %}
+        <ul class=errors>
+            {% for error in field.errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
 {% endmacro %}
 
 <div class="content">
-{% block content %}
+    <div class="container main-block">
+        <!--<img src="{{ url_for('static', filename='forecast_3.png') }}" class="logo" alt="Forecast">-->
+        <div class="row">
+            <div class="col content logo-block">
+                <a id="logo" href="{{ url_for('jacks.start_analysis') }}"><h1>JACKS</h1></a>
+            </div>
+        </div>
+    </div>
+    {% block content %}
 
-{%  endblock content %}
+    {% endblock content %}
 </div>
 <footer class="container main-block">
     <img src="{{ url_for('static', filename='sanger_logo.jpg') }}" style="width:20%">
-    <p>This site is hosted by the <a href="http://www.sanger.ac.uk/">Wellcome Sanger Institute</a><br><a href="http://www.sanger.ac.uk/legal/">Terms &amp; Conditions</a> & <a href="http://www.sanger.ac.uk/legal/cookiespolicy.html">Cookies policy</a></p>
+    <p>This site is hosted by the <a href="http://www.sanger.ac.uk/">Wellcome Sanger Institute</a><br><a
+            href="http://www.sanger.ac.uk/legal/">Terms &amp; Conditions</a> & <a
+            href="http://www.sanger.ac.uk/legal/cookiespolicy.html">Cookies policy</a></p>
 </footer>
 
 </body>

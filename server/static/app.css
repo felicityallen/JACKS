@@ -11,3 +11,12 @@ body {
 footer {
   flex-shrink: 0;
 }
+#logo {
+    color: #000000;
+    text-decoration: none;
+}
+
+.logo-block{
+    margin-top: 15px;
+    margin-bottom: 15px;
+}

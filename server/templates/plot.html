@@ -2,8 +2,14 @@
 {% block title %}JACKS{% endblock %}
 {% block content %}
 
-
+    <div class="container main-block">
+        <!--<img src="{{ url_for('static', filename='forecast_3.png') }}" class="logo" alt="Forecast">-->
+        <div class="row">
+        <div class="col content">
         <div class="plot">
             <img src="{{ image_path }}" alt="plot">
         </div>
+        </div>
+        </div>
+    </div>
 {% endblock content %}
