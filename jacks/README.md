@@ -12,8 +12,8 @@ Run python, type 'import jacks' and check that no error is thrown.
 ## To run JACKS on full screen data
 
 ```bash
-python run_JACKS.py countfile replicatemapfile sgrnamappingfile --rep-hdr=replicate_hdr 
-    --sample-hdr=sample_hdr --ctrl-sample=ctrl_sample --sgrna-hdr=sgrna_hdr --gene-hdr=gene_hdr --outprefix outprefix
+python run_JACKS.py countfile replicatemapfile sgrnamappingfile --rep_hdr=replicate_hdr 
+    --sample_hdr=sample_hdr --common_ctrl_sample=ctrl_sample --sgrna-hdr=sgrna_hdr --gene_hdr=gene_hdr --outprefix outprefix --ctrl_genes=negative_controls.txt
 ```
 
 where
@@ -73,6 +73,8 @@ Guide 3	KRAS
   - `outprefix_grna_JACKS_results.txt` contains the gRNA efficacy scores E(X) and E(X^2) for each guide
   -  `outprefix_JACKS_full_data.pickle` is a pickle file containing the full screen results
 
+* `--ctrl_genes`: A text file containing a list (one per line) of genes to use as negative controls (required if p-value output is wanted).
+  
 examples:
 ```
 python run_JACKS.py example/example_count_data.tab example/example_repmap.tab example/example_count_data.tab --ctrl-sample-or-hdr=CTRL --gene-hdr=gene --outprefix=example_jacks/example_jacks
@@ -97,7 +99,7 @@ all arguments as above except:
 example:   
 
 ```
-python run_JACKS.py example/example_count_data.tab example/example_repmap.tab example/example_count_data.tab --ctrl-sample-or-hdr=CTRL --gene-hdr=gene --reffile=example/example_grna_JACKS_results.txt --outprefix=example_jacks/example_jacks
+python run_JACKS.py example/example_count_data.tab example/example_repmap.tab example/example_count_data.tab --ctrl-sample-or-hdr=CTRL --gene-hdr=gene --reffile=example/example_grna_JACKS_results.txt --outprefix=example_jacks/example_jacks --ctrl_genes=negative_controls.txt
 ```
     
     

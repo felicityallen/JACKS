@@ -2,7 +2,6 @@ import os, glob
 import io
 import random, csv
 import numpy as np
-
 from jacks.infer import LOG
 
 """ Ensures monotonicity of x"""
@@ -23,27 +22,29 @@ def window_smooth(x, window=25):
     return m
     
 """ Simple posterior estimation - use the average variance from 2*window (default 50) gRNAs with nearest means as the estimate if larger than observed. """
-def calc_posterior_sd(data, windowfracN=100, do_monotonize=True, window_estimate=True, guideset_indexs=set()):
+def calc_posterior_sd(data, windowfracN=100.0, do_monotonize=True, guideset_indexs=set()):
+
+    if type(guideset_indexs) == list: guideset_indexs = set(guideset_indexs)
 
     MIN_WINDOW, MAX_WINDOW = 30, 800
     N = data.shape[0]
-    
     #If there's only one replicate, set variances undefined (nans)
-    if len(data.shape) == 1 or data.shape[1] == 1:
-        return np.zeros(N)*np.nan
+    if (len(data.shape) == 1 or data.shape[1] == 1):  return np.zeros(N)*np.nan
 
-    #If there's only one 
     if len(guideset_indexs) == 0: guideset_indexs = set([x for x in range(N)])
     window = min(max( int(len(guideset_indexs)/windowfracN), MIN_WINDOW ), MAX_WINDOW)
 
     #Sort by means, then (in case of equality) variances
-    dmean_vars = [(x,y,i,(i in guideset_indexs)) for (x,y,i) in zip(data.mean(axis=1), np.nanstd(data, axis=1)**2, range(data.shape[0]))]
+    means, vars = data.mean(axis=1), np.nanstd(data, axis=1)**2
+    dmean_vars = [(x,y,i,(i in guideset_indexs)) for (x,y,i) in zip(means, vars, range(len(means)))]
     dmean_vars.sort()
     dmean_vars = np.array(dmean_vars)
 
     # window smoothing of variances
     guideset_mask = (dmean_vars[:,3] == True)
-    m = window_smooth(dmean_vars[guideset_mask,1], window)
+    m =dmean_vars[guideset_mask,1]
+ 
+    m = window_smooth(m, window)
     # enforce monotonicity (decreasing variance with log count) if desired
     if do_monotonize: m = monotonize(m)
     if len(guideset_indexs) != N:
@@ -52,13 +53,12 @@ def calc_posterior_sd(data, windowfracN=100, do_monotonize=True, window_estimate
 
     # construct the posterior estimate and restore original ordering
     sd_post = np.zeros(N)
-    if not window_estimate: m = np.maximum(m, dmean_vars[:,1])
     sd_post[dmean_vars[:,2].astype(int)] = (m**0.5)
 
     return sd_post  
     
 """ Function to compute estimated mean and variance values for each sample across replicates"""
-def condense_normalised_counts(counts, Iscreens):
+def condense_normalised_counts(counts, Iscreens, sample_ids):
     data = np.zeros([counts.shape[0], len(Iscreens), 2]) # mean and variance per gRNA in each sample
     for s, Iscreen in enumerate(Iscreens): # condense to per sample values
         N = len(Iscreen)
@@ -74,16 +74,28 @@ def compute_extras(meta, sample_ids):
     return genes, gene_guides
    
 """ Function to normalize log counts """ 
-def normalizeLogCounts(logcounts, normtype='median'):
+def normalizeLogCounts(logcounts, normtype='median', ctrl_guide_indexes=[]):
+    LOG.info('Applying %s normalisation' % normtype)
     G,L = logcounts.shape
-    if normtype == 'median':        
+    if normtype == 'median': 
         logcounts -= np.tile(np.nanmedian(logcounts,axis=0),(G,1)) # median-normalize
     elif normtype == 'zmad':        
         logcounts -= np.tile(np.nanmedian(logcounts,axis=0),(G,1)) # median-normalize
         logcounts = logcounts/np.tile(1.4826*np.nanmedian(abs(logcounts), axis=0),(G,1))	#adjust to median absolute deviation = 1
+    elif normtype == 'mode':
+        for i in range(L):
+            hist, bin_edges = np.histogram(logcounts[:,i], bins =  100)
+            hist_smooth = 0.1*hist[:-4] + 0.2*hist[1:-3] + 0.4*hist[2:-2] + 0.2*hist[3:-1] + 0.1*hist[4:]
+            bin_middles = 0.5*bin_edges[3:-2] + 0.5*bin_edges[2:-3]
+            norm_factor = bin_middles[np.argmax(hist_smooth)]
+            logcounts[:,i] -= norm_factor
+    elif normtype == 'ctrl_guides':
+        if len(ctrl_guide_indexes) == 0: raise Exception('No guides specified for ctrl guide normalization')
+        logcounts -= np.tile(np.nanmedian(logcounts[ctrl_guide_indexes,:],axis=0),(G,1))
+    else:  raise Exception('Unrecognised normalisation type %s' % normtype)
     return logcounts
 
-def inferMissingVariances(data, meta, sample_ids, ctrl_spec, ctrl_guideset):
+def inferMissingVariances(data, meta, sample_ids, ctrl_spec, ctrl_geneset):
     
     #Check for nan variances
     for s, sample_id in enumerate(sample_ids):
@@ -92,18 +104,21 @@ def inferMissingVariances(data, meta, sample_ids, ctrl_spec, ctrl_guideset):
         #If this is a control replicate, ignore it, as JACKS will use the data variance for this at model time
         if sample_id in ctrl_spec and ctrl_spec[sample_id] == sample_id: continue
 
-        # If this is a sample, and a ctrl_guideset is specified, use twice the variance between
-        # sample and control within this set to infer the mean-variance relationship and apply for others
-        if sample_id in ctrl_spec and len(ctrl_guideset) == 0:
-            guideset_indexs = [meta[:,0].index(x) for x in ctrl_guideset]
-            ctrl_data = data[:,sample_ids.index(ctrl_spec[sample_id]), 1]
-            concat_data = np.concatenate((ctrl_data, data[:,s,1]), axis=1)
-            data[:,s,1] = 2*calc_posterior_sd(concat_data, guideset_indexs) #sigma_hat
+        # If this is a sample, and a ctrl_geneset is specified, use twice the variance between
+        # sample and control within this set to infer the mean-variance relationship,
+        # then apply to all nan variances
+        if sample_id in ctrl_spec and len(ctrl_geneset) > 0:
+            nan_flags = np.isnan(data[:,s,1])
+            guideset_indexs = [i for i,x in enumerate(meta[:,1]) if x in ctrl_geneset]
+            ctrl_data = data[:,[sample_ids.index(ctrl_spec[sample_id])], 0]
+            concat_data = np.concatenate((ctrl_data, data[:,[s],0]), axis=1)
+            data[nan_flags,s,1] = 2*calc_posterior_sd(concat_data, guideset_indexs=guideset_indexs)[nan_flags] #sigma_hat
 
     return data
 
 def collateTestControlSamples(data, sample_ids, ctrl_spec):
     test_sample_idxs = [i for i,x in enumerate(sample_ids) if ctrl_spec[x] != x]
+    LOG.info('Collating %d samples' % len(test_sample_idxs))
     testdata = data[:,test_sample_idxs,:]
     ctrldata = data[:,[sample_ids.index(ctrl_spec[sample_ids[idx]]) for idx in test_sample_idxs],:]    
     return testdata, ctrldata, test_sample_idxs
@@ -112,7 +127,7 @@ def collateTestControlSamples(data, sample_ids, ctrl_spec):
 
 @param sample_spec is {filename:[(sample_id, colname)]} i.e. for each file a list of column names you
    want to load and their sample_ids (to group replicates)"""
-def loadDataAndPreprocess(sample_spec, gene_spec, ctrl_spec={}, ctrl_guideset=set(), normtype='median', prior=32):
+def loadDataAndPreprocess(sample_spec, gene_spec, ctrl_spec={}, ctrl_geneset=set(), normtype='median', prior=32):
 
     #Load the count data from all files as per sample_spec
     samples, sample_counts, metas = [], [], []
@@ -125,31 +140,33 @@ def loadDataAndPreprocess(sample_spec, gene_spec, ctrl_spec={}, ctrl_guideset=se
         samples.extend([sample_id for sample_id, colname in sample_spec[filename]])
         for row in rdr:
             if row[sgrna_col] not in gene_spec: 
-                LOG.warning('No gene mapping found for %s (from file %s)' % (row[sgrna_col],filename))
+                #LOG.warning('No gene mapping found for %s (from file %s)' % (row[sgrna_col],filename))
                 continue    #Ignore entries with no gene mapping
             counts.append([np.log2(eval(row[colname])+prior) for sample_id, colname in sample_spec[filename]])
             meta.append([row[sgrna_col], gene_spec[row[sgrna_col]]])
-        f.close()   
+        f.close()  
         counts = np.array(counts)
-        counts = normalizeLogCounts(counts, normtype=normtype)
+        ctrl_guide_indexes = []
+        if normtype == 'ctrl_guides':
+            ctrl_guide_indexes = [i for i,sgrna_id in enumerate(meta) if sgrna_id[1] in ctrl_geneset]
+        counts = normalizeLogCounts(counts, normtype=normtype, ctrl_guide_indexes=ctrl_guide_indexes)
         meta = np.array(meta)
         I = np.argsort(meta[:,0])
         meta, counts = meta[I,:], counts[I,:]
         metas.append(meta); sample_counts.append(counts + 0.0)
         if len(metas) > 1:
             if not (metas[0]==meta).all():
-                import pdb; pdb.set_trace()
                 raise Exception('Incompatible gRNAs in file %s e.g gRNA naming or order does not match other files' % filename)
     counts = np.concatenate(sample_counts, axis=1)
-    
+
     #Condense counts into means, variances etc per sample
-    sample_ids = [x for x in set(samples)]
+    sample_ids = [x for x in set(samples)]; sample_ids.sort()
     Iscreens = [[col_idx for col_idx,x in enumerate(samples) if x == sample_id] for sample_id in sample_ids]
-    data = condense_normalised_counts(counts, Iscreens)
+    data = condense_normalised_counts(counts, Iscreens, sample_ids)
     genes, gene_guides = compute_extras(meta, sample_ids)
 
     #Infer missing variances (for any cases of single replicates)
-    data = inferMissingVariances(data, meta, sample_ids, ctrl_spec, ctrl_guideset)
+    data = inferMissingVariances(data, meta, sample_ids, ctrl_spec, ctrl_geneset)
             
     return data, meta, sample_ids, genes, gene_guides
 
@@ -160,7 +177,7 @@ def loadDataAndPreprocess(sample_spec, gene_spec, ctrl_spec={}, ctrl_guideset=se
 @param norepl Whether to randomly select samples for each screen with (False) or without (True) replacement
 @param All other params as for loadDataAndPreprocess""" 
 
-def subsample_and_preprocess(selected_screens, sample_spec, gene_spec, ctrl_spec={}, ctrl_guideset=set(), norepl=True):
+def subsample_and_preprocess(selected_screens, sample_spec, gene_spec, ctrl_spec={}, ctrl_geneset=set(), normtype='median', norepl=True):
     
     #Collect replicates for relevant samples
     found_replicates = {}
@@ -202,7 +219,7 @@ def subsample_and_preprocess(selected_screens, sample_spec, gene_spec, ctrl_spec
             selected_sample_spec[filename].append((sample_id, colname))
 
     #Load and preprocess data for those replicates
-    data, meta, cell_lines, genes, gene_guides = loadDataAndPreprocess(selected_sample_spec, gene_spec, ctrl_spec=ctrl_spec, ctrl_guideset=ctrl_guideset)
+    data, meta, cell_lines, genes, gene_guides = loadDataAndPreprocess(selected_sample_spec, gene_spec, ctrl_spec=ctrl_spec, ctrl_geneset=ctrl_geneset, normtype=normtype)
     return data, meta, cell_lines, genes, gene_guides
 
 

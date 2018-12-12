@@ -15,7 +15,7 @@ LOG.setLevel(logging.DEBUG)
          for each element of testdata OR a (num_total_grnas x 2) numpy array containing a common control measurement to
          be used for all conditions.
 @return {gene: y, tau, x1, x2, w1, w2}, the JACKS inference results for each gene in the input gene_index""" 
-def inferJACKS(gene_index, testdata, ctrldata, fixed_x=None, n_iter=50, apply_w_hp=False):
+def inferJACKS(gene_index, testdata, ctrldata, fixed_x=None, n_iter=50, apply_w_hp=False, w_only=False):
     results = {}
     for gene in gene_index:
         Ig = gene_index[gene]
@@ -24,7 +24,9 @@ def inferJACKS(gene_index, testdata, ctrldata, fixed_x=None, n_iter=50, apply_w_
         else: gene_fixed_x = fixed_x
         if testdata.shape != ctrldata.shape: # each line has a matching control:
             raise Exception('Expecting matched size between control and test data')
-        results[gene] = inferJACKSGene(testdata[Ig,:,0], testdata[Ig,:,1], ctrldata[Ig,:,0], ctrldata[Ig,:,1], n_iter, fixed_x=gene_fixed_x, apply_w_hp=apply_w_hp)
+        y, tau, x1, x2, w1, w2 = inferJACKSGene(testdata[Ig,:,0], testdata[Ig,:,1], ctrldata[Ig,:,0], ctrldata[Ig,:,1], n_iter, fixed_x=gene_fixed_x, apply_w_hp=apply_w_hp)
+        if w_only: results[gene] = (None, None, None, None, w1, w2)
+        else: results[gene] = (y, tau, x1, x2, w1, w2) 
     return results
 
 """ Convenience function for matrix-vector and vector-vector dot products, ignoring Nans
@@ -122,5 +124,5 @@ def lowerBound(x1,x2,w1,w2,y,tau):
     xw = SP.outer(x1,w1)
     return SP.nansum(tau*(y**2 + SP.outer(x2,w2) -2*xw*y))
     
-
+    
     
