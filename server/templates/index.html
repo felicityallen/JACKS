@@ -4,91 +4,83 @@
     <div class="container main-block">
         <!--<img src="{{ url_for('static', filename='forecast_3.png') }}" class="logo" alt="Forecast">-->
         <div class="row">
-        <div class="col content">
-            <h2>JACKS</h2>
-            <form action="" enctype="multipart/form-data" method="post" class="main-form">
-                <div class="form-group">
-                    {{ form.raw_count_file.label }} {{ form.raw_count_file }}
-                    <!--<p class="example">e.g. 'ATGCTAGCTAGGGCATGAGGCATGCTAGTGACTGCATGGTAC'</p>-->
-                    {{ show_errors(form.raw_count_file) }}
-                </div>
-                <div class="form-group">
-                    {{ form.replicate_map_file.label }} {{ form.replicate_map_file }}
-                    <!--<p class="example">e.g. '17'</p>-->
-                    {{ show_errors(form.replicate_map_file) }}
-                </div>
-                <div class="form-group">
-                    {{ form.header_replicates.label }} {{ form.header_replicates }}
-                    <!--<p class="example">e.g. '17'</p>-->
-                    {{ show_errors(form.header_replicates) }}
-                </div>
-                <div class="form-group">
-                    {{ form.header_sample.label }} {{ form.header_sample }}
-                    <!--<p class="example">e.g. '17'</p>-->
-                    {{ show_errors(form.header_sample) }}
-                </div>
-                <div class="form-group">
-                    {{ form.ctrl_sample_name.label }} {{ form.header_sample }}
-                    <!--<p class="example">e.g. '17'</p>-->
-                    {{ show_errors(form.header_sample) }}
-                </div>
-                <div class="form-group">
-                    {{ form.grna_gene_map_file.label }} {{ form.grna_gene_map_file }}
-                    <!--<p class="example">e.g. '17'</p>-->
-                    {{ show_errors(form.grna_gene_map_file) }}
-                </div>
-                <div class="form-group">
-                    {{ form.header_grna.label }} {{ form.header_grna }}
-                    <!--<p class="example">e.g. '17'</p>-->
-                    {{ show_errors(form.header_grna) }}
-                </div>
-                <div class="form-group">
-                    {{ form.header_gene.label }} {{ form.header_gene }}
-                    <!--<p class="example">e.g. '17'</p>-->
-                    {{ show_errors(form.header_gene) }}
-                </div>
-                <div class="form-group">
-                    {{ form.use_reference_lib.label }}
-                    {{ form.use_reference_lib }}
-                    {{ show_errors(form.use_reference_lib) }}
-                </div>
-                <div class="form-group" id="reference-lib-block">
-                    {{ form.reference_lib.label }} {{ form.reference_lib }}
-                    <!--<p class="example">e.g. '17'</p>-->
-                    {{ show_errors(form.reference_lib) }}
-                </div>
-                <div class="form-group">
-                    {{ form.max_genes_display.label }} {{ form.max_genes_display }}
-                    <!--<p class="example">e.g. '17'</p>-->
-                    {{ show_errors(form.max_genes_display) }}
-                </div>
-                <button type="submit" class="btn btn-primary" id="submit-seq">Go</button>
-                <!--<button type="button" class="btn btn-success" hidden="True"-->
-                        <!--id="download-report">Download-->
-                <!--</button>-->
-            </form>
+            <div class="col content">
+                <form action="" enctype="multipart/form-data" method="post" class="main-form">
+{#                    <div class="custom-file">#}
+{#                        {{ form.raw_count_file(class_="custom-file-input") }}#}
+                    <div class="form-group">
+                        {{ form.raw_count_file.label }}
+                        {{ form.raw_count_file }}
+                        {{ show_errors(form.raw_count_file) }}
+                    </div>
+                    <div class="form-group">
+                        {{ form.replicate_map_file.label }}
+{#                        {{ form.replicate_map_file(class_="form-control-file") }}#}
+                        {{ form.replicate_map_file}}
+                        {{ show_errors(form.replicate_map_file) }}
+                    </div>
+                    <div class="form-group">
+                        {{ form.header_replicates.label }}
+                        {{ form.header_replicates }}
+                        {{ show_errors(form.header_replicates) }}
+                    </div>
+                    <div class="form-group">
+                        {{ form.header_sample.label }}
+                        {{ form.header_sample }}
+                        {{ show_errors(form.header_sample) }}
+                    </div>
+                    <div class="form-group">
+                        {{ form.ctrl_sample_name.label }}
+                        {{ form.header_sample }}
+                        {{ show_errors(form.header_sample) }}
+                    </div>
+                    <div class="form-group">
+                        {{ form.grna_gene_map_file.label }}
+{#                        {{ form.grna_gene_map_file(class_="form-control-file") }}#}
+                        {{ form.grna_gene_map_file }}
+                        {{ show_errors(form.grna_gene_map_file) }}
+                    </div>
+                    <div class="form-group">
+                        {{ form.header_grna.label }}
+                        {{ form.header_grna }}
+                        {{ show_errors(form.header_grna) }}
+                    </div>
+                    <div class="form-group">
+                        {{ form.header_gene.label }}
+                        {{ form.header_gene }}
+                        {{ show_errors(form.header_gene) }}
+                    </div>
+                    <div class="form-group">
+                        {{ form.use_reference_lib.label }}
+                        {{ form.use_reference_lib }}
+                        {{ show_errors(form.use_reference_lib) }}
+                    </div>
+                    <div class="form-group" id="reference-lib-block">
+                        {{ form.reference_lib.label }}
+                        {{ form.reference_lib }}
+{#                        {{ form.reference_lib(class_="form-control") }}#}
+                        {{ show_errors(form.reference_lib) }}
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="submit-seq">Go</button>
+                </form>
 
 
-                </div>
-                </div>
+            </div>
+        </div>
 
-        <div class="plot">
+        <div class="analysis-status">
             {% if analysis_id %}
-            Analysis is in progress. When it finishes, the results will be available through this link:
+                Analysis is in progress. When it finishes, the results will be available through this link:
                 {% set analysis_link = request.url_root[:-1] + url_for("jacks.retrieve_results", analysis_id=analysis_id) %}
                 <a href="{{ analysis_link }}">{{ analysis_link }}</a>
             {% endif %}
             {% if error_message %}
-
-            An error happened. Please check your inputs. The error message was:
+                An error happened. Please check your inputs. The error message was:
                 <br>
-
                 <code>
-            {{ error_message }}
-
+                    {{ error_message }}
                 </code>
-        {% endif %}
-
+            {% endif %}
         </div>
 
 

@@ -14,12 +14,12 @@ spec:
         app: jacks
     spec:
       containers:
-      - image: quay.io/felicityallen/jacks:v0.1.7
+      - image: quay.io/felicityallen/jacks:v0.2.3
         imagePullPolicy: IfNotPresent
         name: jacks
         volumeMounts:
         - name: results
-          mountPath: /app/results
+          mountPath: /app/server/results
         env:
         - name: CELERY_BROKER_URL
           value: redis://redis.default.svc.cluster.local:6379/0
@@ -73,12 +73,12 @@ spec:
         app: celery
     spec:
       containers:
-      - image: quay.io/felicityallen/jacks:v0.1.7
+      - image: quay.io/felicityallen/jacks:v0.2.3
         imagePullPolicy: IfNotPresent
         name: jacks
         volumeMounts:
         - name: results
-          mountPath: /app/results
+          mountPath: /app/server/results
         env:
         - name: CELERY_BROKER_URL
           value: redis://redis.default.svc.cluster.local:6379/0

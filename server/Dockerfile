@@ -1,6 +1,6 @@
 FROM tiangolo/uwsgi-nginx-flask:python3.6
 
-COPY reference_grna_efficacies /app/
+COPY reference_grna_efficacies /app/reference_grna_efficacies
 COPY jacks /app/jacks
 
 RUN pip install --upgrade pip

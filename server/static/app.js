@@ -13,7 +13,12 @@ $(document).ready(function () {
     });
 });
 
-
 $(document).ready(function () {
     $('#results-table').DataTable();
+});
+
+$(document).ready(function () {
+    $(document.body).on("click", ".download-btn", function () {
+        window.open(window.location.pathname + "download/" + $(this).val());
+    });
 });

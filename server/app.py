@@ -4,12 +4,13 @@ import uuid
 
 import wtforms
 from celery import Celery
-from flask import Flask, render_template, request, Blueprint, redirect, url_for
+from flask import Flask, render_template, request, Blueprint, redirect, url_for, send_file, abort
 from werkzeug.utils import secure_filename
 from wtforms.validators import DataRequired
 
-from jacks.jacks_io import loadJacksFullResultsFromPickle, getSortedGenes, getGeneWs, PICKLE_FILENAME, \
-    REP_HDR_DEFAULT, SAMPLE_HDR_DEFAULT, SGRNA_HDR_DEFAULT, GENE_HDR_DEFAULT, preprocess, load_data_and_run
+from jacks.jacks_io import loadJacksFullResultsFromPickle, getSortedGenes, getGeneWs, \
+    REP_HDR_DEFAULT, SAMPLE_HDR_DEFAULT, SGRNA_HDR_DEFAULT, GENE_HDR_DEFAULT, preprocess, load_data_and_run, \
+    PICKLE_FILENAME, GENE_FILENAME, GRNA_FILENAME
 from plot_heatmap import plot_heatmap
 
 APP_ROOT = os.path.dirname(os.path.dirname(__file__))
@@ -20,7 +21,7 @@ MB = 1024 * 1024
 
 bp = Blueprint('jacks', __name__)
 app = Flask(__name__, template_folder="templates", static_url_path="/JACKS/static")
-app.config['MAX_CONTENT_LENGTH'] = 32 * MB
+app.config['MAX_CONTENT_LENGTH'] = 400 * MB
 app.config[CELERY_BROKER_URL] = os.getenv(CELERY_BROKER_URL, 'redis://localhost:6379/0')
 app.config[CELERY_RESULT_BACKEND] = os.getenv(CELERY_RESULT_BACKEND, 'redis://localhost:6379/0')
 
@@ -36,6 +37,10 @@ AVANA = 'avana'
 REFERENCE_LIB_DICT = {
     YUSAV1_0: os.path.join(APP_ROOT, 'reference_grna_efficacies', 'yusa_v10_grna_JACKS_results.txt'),
     AVANA: os.path.join(APP_ROOT, 'reference_grna_efficacies', 'avana_grna_JACKS_results.txt'),
+}
+ANALYSIS_FILE_DICT = {
+    'gene': GENE_FILENAME,
+    'grna': GRNA_FILENAME
 }
 
 
@@ -55,8 +60,8 @@ def run_jacks_async(countfile, replicatefile, guidemappingfile,
     run_analysis.delay(sample_spec, gene_spec, ctrl_spec, reffile, x_ref, outprefix)
 
 
-def get_pickle_file(analysis_id):
-    return os.path.join(ANALYSIS_FOLDER, analysis_id, PICKLE_FILENAME)
+def get_analysis_file(analysis_id, analysis_file):
+    return os.path.join(ANALYSIS_FOLDER, analysis_id, analysis_file)
 
 
 class JacksForm(wtforms.Form):
@@ -78,7 +83,6 @@ class JacksForm(wtforms.Form):
                                                  # ('whitehead', 'Whitehead'),
                                                  # ('toronto', 'Toronto Knockout')],
                                                  default="")
-    max_genes_display = wtforms.IntegerField('Max genes to display', default=20)
 
 
 @app.route('/')
@@ -128,9 +132,9 @@ def start_analysis():
 @bp.route('/results/<path:analysis_id>', methods=["GET"])
 def retrieve_results(analysis_id):
     template = "results.html"
-    picklefile = get_pickle_file(analysis_id)
+    picklefile = get_analysis_file(analysis_id, PICKLE_FILENAME)
     if os.path.isfile(picklefile):
-        jacks_results, cell_lines, gene_grnas = loadJacksFullResultsFromPickle(get_pickle_file(analysis_id))
+        jacks_results, cell_lines, gene_grnas = loadJacksFullResultsFromPickle(picklefile)
         table = []
         sorted_genes = getSortedGenes(jacks_results)
         for gene in sorted_genes:
@@ -145,14 +149,24 @@ def retrieve_results(analysis_id):
 @bp.route('/results/<analysis_id>/gene/<gene>', methods=["GET"])
 def plot_gene_heatmap(analysis_id, gene):
     template = "plot.html"
-    picklefile = get_pickle_file(analysis_id)
+    picklefile = get_analysis_file(analysis_id, PICKLE_FILENAME)
     if os.path.isfile(picklefile):
         image_path = os.path.join("results", analysis_id, "figure.png")
-        full_image_path = os.path.join(APP_ROOT, "server", "static", image_path)
-        plot_heatmap(picklefile, gene, full_image_path)
-        return render_template(template, image_path=url_for('static', filename=image_path))
+        full_image_path = os.path.join(os.path.dirname(__file__), "static", image_path)
+        if not os.path.exists(full_image_path):
+            plot_heatmap(picklefile, gene, full_image_path)
+        return render_template(template, gene=gene, image_path=url_for('static', filename=image_path))
     else:
-        return render_template(template)
+        return render_template(template, gene=gene)
+
+
+@bp.route('/results/<analysis_id>/download/<file>', methods=["GET"])
+def download(analysis_id, file):
+    try:
+        filename = get_analysis_file(analysis_id, ANALYSIS_FILE_DICT[file])
+        return send_file(filename, as_attachment=True)
+    except KeyError:
+        return "Unknown analysis file requested", 400
 
 
 app.register_blueprint(bp, url_prefix='/JACKS')

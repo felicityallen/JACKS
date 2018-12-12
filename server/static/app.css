@@ -1,13 +1,62 @@
+#logo {
+    color: #000000;
+    text-decoration: none;
+}
+
+.logo-block {
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+.analysis-status {
+    margin-top: 10px;
+}
+
+#gene-name-plot-header {
+    color: rgba(6, 143, 228, 0.9);
+}
+
+.gene-col {
+    background-color: rgba(255, 193, 193, 0.59);
+}
+
+.mean-col {
+    background-color: rgb(255, 251, 212);
+}
+
+.cell-lines-col {
+    background-color: rgba(60, 123, 228, 0.25);
+}
+
+.table-headers {
+    font-style: italic;
+}
+
+.download {
+    margin-top: 15px;
+    margin-bottom: 30px;
+}
+
+/* so that h1 doesn't take the entire wrapping block */
+h1 {
+    display: inline-block
+}
+
+/* sticky footer settings */
+
 html, body {
-  height: 100%;
+    height: 100%;
 }
+
 body {
-  display: flex;
-  flex-direction: column;
+    display: flex;
+    flex-direction: column;
 }
+
 .content {
-  flex: 1 0 auto;
+    flex: 1 0 auto;
 }
+
 footer {
-  flex-shrink: 0;
+    flex-shrink: 0;
 }

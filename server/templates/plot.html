@@ -2,8 +2,14 @@
 {% block title %}JACKS{% endblock %}
 {% block content %}
 
-
-        <div class="plot">
-            <img src="{{ image_path }}" alt="plot">
+    <div class="container main-block">
+        <div class="row">
+            <div class="col content">
+                <h4>Gene: <span id="gene-name-plot-header">{{ gene }}</span></h4>
+                <div class="plot">
+                    <img src="{{ image_path }}" alt="plot">
+                </div>
+            </div>
         </div>
+    </div>
 {% endblock content %}
