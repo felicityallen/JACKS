@@ -13,7 +13,7 @@ Run python, type 'import jacks' and check that no error is thrown.
 
 ```bash
 python run_JACKS.py countfile replicatemapfile sgrnamappingfile --rep_hdr=replicate_hdr 
-    --sample_hdr=sample_hdr --common_ctrl_sample=ctrl_sample --sgrna-hdr=sgrna_hdr --gene_hdr=gene_hdr --outprefix outprefix --ctrl_genes=negative_controls.txt
+    --sample_hdr=sample_hdr --common_ctrl_sample=ctrl_sample --sgrna_hdr=sgrna_hdr --gene_hdr=gene_hdr --outprefix outprefix --ctrl_genes=negative_controls
 ```
 
 where
@@ -67,28 +67,28 @@ Guide 3	KRAS
 ...
 ```
 
-* `--outprefix`: the output prefix of the JACKS output files. Three output files will be produced.
+* `--outprefix`: the output prefix of the JACKS output files. The following output files will be produced.
   -  `outprefix_gene_JACKS_results.txt` contains the gene essentiality scores E(w) for each cell line
-  - `outprefix_genestd_JACKS_results.txt` contains the standard deviations of the gene essentiality scores std(w) for each cell line
+  - `outprefix_gene_std_JACKS_results.txt` contains the standard deviations of the gene essentiality scores std(w) for each cell line
+  - `outprefix_gene_pval_JACKS_results.txt` contains the p-values for the gene essentiality scores for each cell line (only output if negative control genes or guides are specified)
   - `outprefix_grna_JACKS_results.txt` contains the gRNA efficacy scores E(X) and E(X^2) for each guide
   -  `outprefix_JACKS_full_data.pickle` is a pickle file containing the full screen results
 
-* `--ctrl_genes`: A text file containing a list (one per line) of genes to use as negative controls (required if p-value output is wanted).
+* `--ctrl_genes`: (Required if p-value output is wanted) Either, the name of a gene (as used in sgrnamappingfile) specifying a set of negative control guides (e.g. these could be intergenic, non-targeting etc) OR a text file containing a list (one per line) of genes to use as negative controls.
   
-examples:
+example:
+```bash
+python run_JACKS.py example/example_count_data.tab example/example_repmap.tab example/example_count_data.tab --common_ctrl_sample=CTRL --gene_hdr=gene --outprefix=example_jacks/example_jacks --ctrl_genes=example/NEGv1.txt
 ```
-python run_JACKS.py example/example_count_data.tab example/example_repmap.tab example/example_count_data.tab --ctrl-sample-or-hdr=CTRL --gene-hdr=gene --outprefix=example_jacks/example_jacks
+```bash
+python run_JACKS.py example/example_count_data.tab example/example_repmap_matched_ctrls.tab example/example_count_data.tab --ctrl_sample_hdr=Control --gene_hdr=gene --outprefix=example_jacks_ctrls/example_jacks --ctrl_genes=example/NEGv1.txt
 ```
-
-```
-python run_JACKS.py example/example_count_data.tab example/example_repmap_matched_ctrls.tab example/example_count_data.tab --gene-hdr=gene --ctrl-sample-or-hdr=Control --outprefix=example_jacks/example_jacks
-``` 
 
 ## OR to run JACKS on new screen with previously used library
 
 ```bash
 python run_JACKS.py countfile replicatemapfile sgrnamappingfile --rep-hdr=replicate_hdr 
-    --sample-hdr=sample_hdr --ctrl-sample-or-hdr=ctrl_sample --sgrna-hdr=sgrna_hdr --gene-hdr=gene_hdr --reffile=grnaeffiacyfile --outprefix outprefix
+    --sample_hdr=sample_hdr --common_ctrl_sample=ctrl_sample --sgrna-hdr=sgrna_hdr --gene-hdr=gene_hdr --reffile=grnaeffiacyfile --outprefix outprefix
 ```
 
 all arguments as above except:
@@ -99,10 +99,8 @@ all arguments as above except:
 example:   
 
 ```
-python run_JACKS.py example/example_count_data.tab example/example_repmap.tab example/example_count_data.tab --ctrl-sample-or-hdr=CTRL --gene-hdr=gene --reffile=example/example_grna_JACKS_results.txt --outprefix=example_jacks/example_jacks --ctrl_genes=negative_controls.txt
-```
-    
-    
+python run_JACKS.py example/example_count_data.tab example/example_repmap.tab example/example_count_data.tab --common_ctrl_sample=CTRL --gene_hdr=gene --outprefix=example_jacks_ref/example_jacks --ctrl_genes=example/NEGv1.txt --reffile=example/example_grna_JACKS_results.txt```
+      
 see `2018_paper_materials/README.txt` for further examples.
 
 ## Then, to plot heatmap outputs for a gene of interest

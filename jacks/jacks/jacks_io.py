@@ -68,13 +68,11 @@ def computeW1PvalsAndFDRs(jacks_results, test_sample_ids, noness_genes = set(), 
     w1_pvals = {gene: np.zeros(len(test_sample_ids)) for gene in jacks_results}
     w1_fdrs = {gene: np.zeros(len(test_sample_ids)) for gene in jacks_results}
     for idx, sample_id in enumerate(test_sample_ids):
-        LOG.info('computing w1 pval for %s' % sample_id)
         if compute_fdr:
             w1_all = np.array([jacks_results[gene][4][idx].item() for gene in jacks_results if not np.isnan(jacks_results[gene][4][idx])])
             k_all = ST.gaussian_kde(w1_all)
         noness_w1 = np.array([jacks_results[gene][4][idx].item() for gene in jacks_results if is_noness(gene) and not np.isnan(jacks_results[gene][4][idx])])
         k_noness = ST.gaussian_kde(noness_w1)
-        LOG.info('computed kernels')
         for gene in jacks_results:
             if is_noness(gene) and not pseudo: 	#For non-essential genes, build another kernel that doesn't include the gene itself
                 kernel = ST.gaussian_kde(np.array([jacks_results[x][4][idx].item() for x in jacks_results if (is_noness(x) and (x != gene))]))
@@ -85,12 +83,11 @@ def computeW1PvalsAndFDRs(jacks_results, test_sample_ids, noness_genes = set(), 
 
 def writeJacksWResults( outprefix, jacks_results, cell_lines, write_types=[''], ctrl_geneset=set(), fdr=None, fdr_thresh_type='REGULAR', pseudo=False):
     #Sort genes by w1
-    LOG.info('Ordering genes...')
     ordered_genes = getSortedGenes(jacks_results)
     fouts = [io.open(outprefix + '_gene%s_JACKS_results.txt' % write_type,'w') for write_type in write_types]
     for fout in fouts: fout.write(u'Gene\t%s\n' % ('\t'.join(cell_lines)))
     if '_fdr' in write_types or '_pval' in write_types:
-        LOG.info('Computing Pvals...')
+        LOG.info('Computing P-values')
         jacks_w1_pvals,jacks_w1_fdrs =  computeW1PvalsAndFDRs(jacks_results, cell_lines, noness_genes = ctrl_geneset, pseudo=pseudo, compute_fdr=('_fdr' in write_types))
     
     #Determine threshold sets for fdr cut-offs (blank out non-significant genes)
@@ -102,7 +99,6 @@ def writeJacksWResults( outprefix, jacks_results, cell_lines, write_types=[''], 
         else: raise Exception('Unrecognised FDR threshold type (expecting REGULAR or LOCAL_FDR): ', fdr_thresh_type)
 
     #Write out one line per gene (all cell lines)
-    LOG.info('writing...')
     for w1_mean, gene in ordered_genes:
         for write_type,fout in zip(write_types, fouts):
             
@@ -229,13 +225,16 @@ def createGeneSpec(guidemappingfile, sgrna_hdr, gene_hdr, ignore_blank_genes=Tru
     return gene_spec
 
 #Either gene name or input file with set of gene identifiers (one per line)
-def readControlGeneset(ctrl_genes):
+def readControlGeneset(ctrl_genes, gene_spec={}):
     if os.path.isfile(ctrl_genes):
         f = io.open(ctrl_genes)
         geneset = set([line.split()[0] for line in f])
         f.close()
         LOG.info('Read %d control genes from %s' % (len(geneset), ctrl_genes))
     else: 
+        all_genes = set([gene_spec[x] for x in gene_spec]) 
+        if ctrl_genes not in all_genes:
+            raise Exception('Could not find gene %s to use as negative control' % ctrl_genes)
         geneset = set([ctrl_genes])
         LOG.info('Using %s as control gene' % (ctrl_genes))
     return geneset
@@ -249,8 +248,9 @@ def loadSgrnaReference(filename):
 def createPseudoNonessGenes(gene_index, ctrl_geneset, num_psuedo_noness_genes):
     pseudo_gene_index = {}
     ctrl_geneset_lst = [x for x in ctrl_geneset if x in gene_index]
+    all_geneset_lst = [x for x in gene_index]
     for i in range(num_psuedo_noness_genes):
-        num_guides = len(gene_index[random.choice(ctrl_geneset_lst)])
+        num_guides = len(gene_index[random.choice(all_geneset_lst)])
         pseudo_idxs = [random.choice(gene_index[random.choice(ctrl_geneset_lst)]) for j in range(num_guides)]
         pseudo_gene_index['PSEUDO_GENE_%d' % i] = pseudo_idxs
     return pseudo_gene_index
@@ -331,7 +331,10 @@ def getJacksParser():
                     type=int,
                     default=2000,
                     help="Number of pseudo genes to create and infer JACKS results for by randomly sampling guides for the control genes")
-
+    ap.add_argument("--count_prior",
+                    type=int,
+                    default=32,
+                    help="Prior count to be added to all read counts prior to log operation")
     return ap
 
 def preprocess(countfile, replicatefile, guidemappingfile,
@@ -363,10 +366,10 @@ def preprocess(countfile, replicatefile, guidemappingfile,
 
 def load_data_and_run(sample_spec, gene_spec, ctrl_spec, sgrna_reference_file, x_ref,
                       outprefix, apply_w_hp=APPLY_W_HP_DEFAULT, norm_type=NORM_TYPE_DEFAULT, 
-                      ctrl_genes=None, fdr=None, fdr_thresh_type = 'REGULAR', n_pseudo=0 ):
+                      ctrl_genes=None, fdr=None, fdr_thresh_type = 'REGULAR', n_pseudo=0, count_prior=32 ):
 
     # Load negative control genes (if any)
-    ctrl_geneset = readControlGeneset(ctrl_genes) if ctrl_genes is not None else set()
+    ctrl_geneset = readControlGeneset(ctrl_genes, gene_spec) if ctrl_genes is not None else set()
 
     if '/' in outprefix and not os.path.exists(os.path.dirname(outprefix)): os.makedirs(os.path.dirname(outprefix))
     outfile_x = outprefix + '_grna_JACKS_results.txt'
@@ -376,7 +379,7 @@ def load_data_and_run(sample_spec, gene_spec, ctrl_spec, sgrna_reference_file, x
 
     # Load the data and preprocess
     LOG.info('Loading data and pre-processing')
-    data, meta, sample_ids, genes, gene_index = loadDataAndPreprocess(sample_spec, gene_spec,ctrl_spec=ctrl_spec,normtype=norm_type, ctrl_geneset=ctrl_geneset)
+    data, meta, sample_ids, genes, gene_index = loadDataAndPreprocess(sample_spec, gene_spec,ctrl_spec=ctrl_spec,normtype=norm_type, ctrl_geneset=ctrl_geneset, prior=count_prior)
     gene_grnas = {gene: [x for x in meta[gene_index[gene], 0]] for gene in gene_index}
     testdata, ctrldata, test_sample_idxs = collateTestControlSamples(data, sample_ids, ctrl_spec)
     sample_ids_without_ctrl = [sample_ids[idx] for idx in test_sample_idxs]
@@ -415,14 +418,14 @@ def runJACKS(countfile, replicatefile, guidemappingfile,
               ctrl_sample_hdr=None, sgrna_hdr=SGRNA_HDR_DEFAULT, gene_hdr=GENE_HDR_DEFAULT, 
               apply_w_hp=APPLY_W_HP_DEFAULT, norm_type=NORM_TYPE_DEFAULT, 
               ignore_blank_genes=False, ctrl_genes=None, fdr=None, fdr_thresh_type = 'REGULAR',
-              outprefix=OUTPREFIX_DEFAULT, reffile=None, n_pseudo=0):
+              outprefix=OUTPREFIX_DEFAULT, reffile=None, n_pseudo=0, count_prior=32):
 
     sample_spec, ctrl_spec, gene_spec, x_ref = preprocess(countfile, replicatefile, guidemappingfile,
                                                                 rep_hdr, sample_hdr, common_ctrl_sample,
                                                                 ctrl_sample_hdr, sgrna_hdr, gene_hdr, 
                                                                 ignore_blank_genes, outprefix, reffile)
     load_data_and_run(sample_spec, gene_spec, ctrl_spec, reffile, x_ref,
-                      outprefix, apply_w_hp=apply_w_hp, norm_type=norm_type, ctrl_genes=ctrl_genes, fdr=fdr, fdr_thresh_type=fdr_thresh_type, n_pseudo=n_pseudo )
+                      outprefix, apply_w_hp=apply_w_hp, norm_type=norm_type, ctrl_genes=ctrl_genes, fdr=fdr, fdr_thresh_type=fdr_thresh_type, n_pseudo=n_pseudo, count_prior=count_prior )
     
 def runJACKSFromArgs():
     parser = getJacksParser()
@@ -432,5 +435,5 @@ def runJACKSFromArgs():
               args.ctrl_sample_hdr, args.sgrna_hdr, args.gene_hdr, 
               args.apply_w_hp, args.norm_type, 
               args.ignore_blank_genes, args.ctrl_genes, args.fdr, args.fdr_thresh_type,
-              args.outprefix, args.reffile, args.n_pseudo)
+              args.outprefix, args.reffile, args.n_pseudo, args.count_prior)
 
