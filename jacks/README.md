@@ -100,7 +100,8 @@ example:
 
 ```
 python run_JACKS.py example/example_count_data.tab example/example_repmap.tab example/example_count_data.tab --common_ctrl_sample=CTRL --gene_hdr=gene --outprefix=example_jacks_ref/example_jacks --ctrl_genes=example/NEGv1.txt --reffile=example/example_grna_JACKS_results.txt```
-      
+```     
+     
 see `2018_paper_materials/README.txt` for further examples.
 
 ## Then, to plot heatmap outputs for a gene of interest
