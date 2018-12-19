@@ -1,29 +1,30 @@
-import sys
-import csv
-import os
-import io
+import io, os, sys
+import pandas as pd
 
-if len(sys.argv) != 2:
-    print 'Usage: combine_single_jacks.py single_jacks_dir'
-else:
+def mergeFiles(files, outfile):
+    merged_data = pd.read_csv(files[0],sep='\t')
+    for filename in files[1:]:
+        try:
+            data = pd.read_csv(filename, sep='\t')
+        except pd.errors.EmptyDataError:
+            print('No data in', filename)
+            continue
+        merged_data = pd.merge(merged_data, data, on='Gene')
+    merged_data.to_csv(outfile, sep='\t', index=False)
+    print(merged_data.shape)
 
-    single_jacks_dir = sys.argv[1]
-    all_files = [x for x in os.listdir(single_jacks_dir) if 'gene' in x]
-    num_dir_toks = len(single_jacks_dir.split('_'))
+dirname = sys.argv[1]
+outdirname = dirname + '_combined'
+if not os.path.isdir(outdirname): os.makedirs(outdirname)
 
-    single_results = {}
-    for filename in all_files:
-        toks = filename.split('_')
-        cell_line = '_'.join(toks[3:-3])
-        f = io.open(single_jacks_dir + '/' + filename)
-        f.readline()
-        single_results[cell_line] = {toks[0]:toks[1] for toks in csv.reader(f, delimiter='\t')}
-        f.close()
+all_files = os.listdir(dirname)
 
-    cell_lines = single_results.keys()
-    fout = io.open('%s_gene_JACKS_results.txt' % single_jacks_dir, 'w')
-    fout.write(u'Gene\t%s\n' % '\t'.join(cell_lines))
-    genes = single_results[cell_lines[0]].keys()
-    for gene in genes:
-        fout.write(u'%s\t%s\n' % (gene, '\t'.join([single_results[cell_line][gene] for cell_line in cell_lines])))
-    fout.close()
+file_endings = ['gene', 'gene_pval', 'gene_std','pseudo_combined_gene', 'pseudo_combined_gene_pval','pseudo_combined_gene_std','pseudo_noness_gene','pseudo_noness_gene_std']
+
+for fending in file_endings:
+
+    pseudo = ('pseudo' in fending)
+    indiv_files = [dirname + '/' + x for x in all_files if x[-18-len(fending):-18] == fending and ((not pseudo and 'pseudo' not in x) or pseudo)] 
+    print(pseudo, fending, len(indiv_files))
+    mergeFiles(indiv_files, outdirname + '/' + dirname.split('/')[-1] + '_%s_JACKS_results.txt' % fending)
+

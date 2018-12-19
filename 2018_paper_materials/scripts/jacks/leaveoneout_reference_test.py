@@ -1,65 +1,91 @@
-import io, os, csv, random
-from jacks.jacks import infer_JACKS
-from jacks.io_preprocess import load_data_and_preprocess, writeJacksWResults, writeJacksXResults, pickleJacksFullResults
+import io, sys, os, csv, random, logging
+from jacks.infer import LOG, inferJACKS
+from jacks.jacks_io import loadSgrnaReference, readControlGeneset, createGeneSpec, createSampleSpec, getJacksParser, collateTestControlSamples, writeJacksWResults, writeJacksXResults
+from jacks.preprocess import loadDataAndPreprocess
+from run_JACKS_single import filterSampleSpec, filterCtrlSpec
+import numpy as np
 
-from run_JACKS import prepareFile, createGeneSpec, createSampleSpec
+py_cmd = 'python'
+
+def filterOutSampleSpec(sample_spec, cell_line, ctrl_spec):
+    new_sample_spec = {}
+    for filename in sample_spec:
+        for sample_id, colname in sample_spec[filename]:
+            if sample_id == cell_line: continue
+            if filename not in new_sample_spec:
+                new_sample_spec[filename] = []
+            new_sample_spec[filename].append((sample_id, colname))
+    return new_sample_spec
     
 LOG.setLevel(logging.WARNING)
+parser = getJacksParser()
+parser.add_argument("--cell_line",
+                type=str,
+                default=None,
+                help="cell line to run")
+parser.add_argument("--separate",
+                action='store_true',
+                default=False,
+                help="Run all cell lines separately")
+args = parser.parse_args()
 
-def loadSgrnaReference(filename):
-    f = io.open(filename)
-    x_ref = {row['sgrna']:row for row in csv.DictReader(f,delimiter='\t')}
-    f.close()
-    return x_ref
+outprefix = args.outprefix
+if '/' in outprefix and not os.path.exists(os.path.dirname(outprefix)): os.makedirs(os.path.dirname(outprefix))
 
-def createModifiedRepMapFile(repfile, outrepfile, rep_hdr, sample_hdr, ctrl_sample, sample, sample_only=False):
-    f, delim = prepareFile(repfile, rep_hdr)
-    fout = io.open(outrepfile, 'w')
-    fout.write(u'%s\t%s\n' % (rep_hdr, sample_hdr))
-    for row in csv.DictReader(f, delimiter=delim):
-        if (row[sample_hdr] == ctrl_sample) or \
-           (sample_only and row[sample_hdr] == sample) or \
-           (not sample_only and row[sample_hdr] != sample):
-                fout.write(u'%s\t%s\n' % (row[rep_hdr], row[sample_hdr]))
-    f.close()
-    fout.close()
-    
-if len(sys.argv) != 6:
-    print 'Usage: leaveoneout_reference_test.py sample countfile replicatefile:rep_hdr:sample_hdr:ctrl_sample guidemappingfile:sgrna_hdr:gene_hdr outputprefix'
-else:
+# Load the specification of samples to include
+LOG.info('Loading sample specification')
+sample_spec, ctrl_spec, sample_num_reps = createSampleSpec(args.countfile, args.replicatefile, args.rep_hdr,
+                                                            args.sample_hdr, args.common_ctrl_sample, args.ctrl_sample_hdr)
+if args.cell_line != None:
+    single_sample_spec = filterSampleSpec(sample_spec, args.cell_line, ctrl_spec)  
+    single_ctrl_spec = filterCtrlSpec(ctrl_spec, args.cell_line)
+    ref_sample_spec = filterOutSampleSpec(sample_spec, args.cell_line, ctrl_spec)
+    ref_outfile =  outprefix + '_xreference_' + args.cell_line + '.txt'
 
-    #Parse arguments
-    sample = sys.argv[1]
-    countfile = sys.argv[2] #sgrna label is always in the first column
+elif args.separate:
+    for cell_line in ctrl_spec:
+        if ctrl_spec[cell_line] == cell_line: continue
+        cmd = '%s --cell_line=%s' % (' '.join(sys.argv), cell_line)
+        os.system('%s %s' % (py_cmd,cmd))
+    exit()
 
-    rep_toks = sys.argv[3].split(':')
-    if len(rep_toks) != 4:
-        raise Exception('Incorrect replicate file input: expecting "replicatefile:rep_hdr:sample_hdr:ctrl_sample" where replicatefile is a csv or tab delimited file mapping replicates to samples, rep_hdr and sample_hdr specify the column headers for the columns containing the replicate labels and sample labels respectively, and ctrl_sample specifies the name of the control sample')
-    replicatefile, rep_hdr, sample_hdr, ctrl_sample = rep_toks
-    
-    guide_toks = sys.argv[4].split(':')
-    if len(guide_toks) != 3:
-        raise Exception('Incorrect guidemappingfile input: expecting "guidemappingfile:sgrna_hdr:gene_hdr" where guidemappingfile is a csv or tab delimited file mapping guides to genes, sgrna_hdr and gene_hdr specify the column headers for the columns containing the guide labels and gene labels respectively.')
-    guidemappingfile, sgrna_hdr, gene_hdr = guide_toks   
-    
-    outprefix = sys.argv[5]
-    
-    #Create a replicate map file containing all but the specified sample
-    mod_repfile_loo = outprefix + '_loo_repmap.txt'
-    createModifiedRepMapFile(replicatefile, mod_repfile_loo, rep_hdr, sample_hdr, ctrl_sample, sample, sample_only=False)
-    
-    #Run JACKS on this
-    if not os.path.isdir(outprefix + '_loo'): os.mkdir(outprefix + '_loo')
-    cmd = 'python run_JACKS.py %s %s:%s:%s:%s %s %s' % (countfile, mod_repfile_loo, rep_hdr, sample_hdr, ctrl_sample, sys.argv[4], outprefix + '_loo' )
-    print cmd
-    os.system(cmd)
-    xref_file = outprefix + '_loo_grna_JACKS_results.txt' 
-    
-    #Create a replicate map file containing only the specified sample and ctrl sample
-    mod_repfile_only = outprefix + '_only_repmap.txt'
-    createModifiedRepMapFile(replicatefile, mod_repfile_only, rep_hdr, sample_hdr, ctrl_sample, sample, sample_only=True)
-    
-    #Now run JACKS reference on the just computed sgrna data
-    cmd = 'python run_JACKS_reference.py %s %s:%s:%s:%s %s %s %s' % (countfile, mod_repfile_only, rep_hdr, sample_hdr, ctrl_sample, sys.argv[4], xref_file, outprefix + '_only' )
-    print cmd
-    os.system(cmd)    
+# Load the mappings from guides to genes
+LOG.info('Loading gene mappings')
+gene_spec = createGeneSpec(args.guidemappingfile, args.sgrna_hdr, args.gene_hdr, ignore_blank_genes=args.ignore_blank_genes)
+
+# Load negative control guides (if any)
+ctrl_geneset = readControlGeneset(args.ctrl_genes) if args.ctrl_genes is not None else set()
+
+##REFERENCE (to collect X's)
+
+# Load the data and preprocess
+LOG.info('Reference: Loading data and pre-processing')
+data, meta, sample_ids, genes, gene_index = loadDataAndPreprocess(ref_sample_spec, gene_spec,ctrl_spec=ctrl_spec, normtype=args.norm_type, ctrl_geneset=ctrl_geneset)
+gene_grnas = {gene: [x for x in meta[gene_index[gene], 0]] for gene in gene_index}
+testdata, ctrldata, test_sample_idxs = collateTestControlSamples(data, sample_ids, ctrl_spec)
+sample_ids_without_ctrl = [sample_ids[idx] for idx in test_sample_idxs]
+
+#Run all samples against their controls
+LOG.info('Reference: Running JACKS inference')
+jacks_results = inferJACKS(gene_index, testdata, ctrldata)
+writeJacksXResults(ref_outfile, jacks_results, gene_grnas)
+
+##TEST (using reference)
+LOG.info('Test: Loading data and pre-processing')
+data, meta, sample_ids, genes, gene_index = loadDataAndPreprocess(single_sample_spec, gene_spec,ctrl_spec=single_ctrl_spec, normtype=args.norm_type, ctrl_geneset=ctrl_geneset)
+gene_grnas = {gene: [x for x in meta[gene_index[gene], 0]] for gene in gene_index}
+testdata, ctrldata, test_sample_idxs = collateTestControlSamples(data, sample_ids, ctrl_spec)
+sample_ids_without_ctrl = [sample_ids[idx] for idx in test_sample_idxs]
+
+x_ref = loadSgrnaReference(ref_outfile)
+# Create the X reference (in the correct order)
+x_reference = {'X1': np.array([eval(x_ref[x]['X1']) for x in meta[:, 0]]),
+                'X2': np.array([eval(x_ref[x]['X2']) for x in meta[:, 0]])}
+
+#Run all samples against their controls
+LOG.info('Test: Running JACKS inference using reference')
+test_jacks_results = inferJACKS(gene_index, testdata, ctrldata, w_only=True, fixed_x=x_reference)
+
+# Write out the results
+LOG.info('Writing JACKS results')
+writeJacksWResults(outprefix + '_' + args.cell_line, test_jacks_results, sample_ids_without_ctrl, ctrl_geneset=ctrl_geneset, write_types=[''])
