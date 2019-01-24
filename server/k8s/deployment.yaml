@@ -27,8 +27,23 @@ spec:
           value: redis://redis.default.svc.cluster.local:6379/0
         ports:
         - containerPort: 8005
+          hostPort: 18005
           name: jacks
           volumes:
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: 1
+          limits:
+            memory: "2Gi"
+            cpu: 2
+        livenessProbe:
+          httpGet:
+            path: /
+            port: jacks
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+          periodSeconds: 240
       volumes:
       - name: results
         persistentVolumeClaim:
@@ -56,6 +71,24 @@ spec:
         ports:
         - containerPort: 6379
           name: redis
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: 1
+          limits:
+            memory: "2Gi"
+            cpu: 2
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - redis-cli -h $(hostname) ping
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 240
+          successThreshold: 1
+          timeoutSeconds: 1
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -86,6 +119,24 @@ spec:
           value: redis://redis.default.svc.cluster.local:6379/0
         command: ["celery"]
         args: ["-A", "app.celery", "worker", "-l", "info"]
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: 1
+          limits:
+            memory: "2Gi"
+            cpu: 2
+        livenessProbe:
+          exec:
+            command:
+            - "/bin/sh"
+            - "-c"
+            - "celery status | grep OK"
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 240
+          successThreshold: 1
+          timeoutSeconds: 1
       volumes:
       - name: results
         persistentVolumeClaim:
