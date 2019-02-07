@@ -120,7 +120,8 @@ def writeJacksWResults( outprefix, jacks_results, cell_lines, write_types=[''], 
                 w1s = [('%5e' % w1) if flag else '' for (w1,flag) in zip(jacks_results[gene][4],sig_gene_flags)]
             else:  raise Exception('Unrecognised write type: %s' % write_type)
             w1_str = '\t'.join(w1s)
-            fout.write(u'%s\t%s\n' % (gene, w1_str))
+            if 'JACKS_PSEUDO_GENE' not in gene:
+                fout.write(u'%s\t%s\n' % (gene, w1_str))
     for fout in fouts: fout.close()
 
 def writeJacksXResults( filename, jacks_results, gene_grnas ):
@@ -225,16 +226,15 @@ def createGeneSpec(guidemappingfile, sgrna_hdr, gene_hdr, ignore_blank_genes=Tru
     return gene_spec
 
 #Either gene name or input file with set of gene identifiers (one per line)
-def readControlGeneset(ctrl_genes, gene_spec={}):
+def readControlGeneset(ctrl_genes, gene_spec):
+    known_genes = set([gene_spec[x] for x in gene_spec])
     if os.path.isfile(ctrl_genes):
         f = io.open(ctrl_genes)
-        geneset = set([line.split()[0] for line in f])
+        geneset = set([line.split()[0] for line in f if line.split()[0] in known_genes])
         f.close()
-        LOG.info('Read %d control genes from %s' % (len(geneset), ctrl_genes))
+        LOG.info('Read %d recognised control genes from %s' % (len(geneset), ctrl_genes))
     else: 
-        all_genes = set([gene_spec[x] for x in gene_spec]) 
-        if ctrl_genes not in all_genes:
-            raise Exception('Could not find gene %s to use as negative control' % ctrl_genes)
+        if ctrl_genes not in known_genes: raise Exception('Not a file or unrecognised control gene: %s' % ctrl_genes) 
         geneset = set([ctrl_genes])
         LOG.info('Using %s as control gene' % (ctrl_genes))
     return geneset
@@ -252,7 +252,7 @@ def createPseudoNonessGenes(gene_index, ctrl_geneset, num_psuedo_noness_genes):
     for i in range(num_psuedo_noness_genes):
         num_guides = len(gene_index[random.choice(all_geneset_lst)])
         pseudo_idxs = [random.choice(gene_index[random.choice(ctrl_geneset_lst)]) for j in range(num_guides)]
-        pseudo_gene_index['PSEUDO_GENE_%d' % i] = pseudo_idxs
+        pseudo_gene_index['JACKS_PSEUDO_GENE_%d' % i] = pseudo_idxs
     return pseudo_gene_index
 
 def getJacksParser():
@@ -403,11 +403,13 @@ def load_data_and_run(sample_spec, gene_spec, ctrl_spec, sgrna_reference_file, x
         pseudo_gene_index = createPseudoNonessGenes(gene_index, ctrl_geneset, n_pseudo)
         jacks_pseudo_results = inferJACKS(pseudo_gene_index, testdata, ctrldata, apply_w_hp=apply_w_hp)
         writeJacksWResults(outprefix + '_pseudo_noness', jacks_pseudo_results, sample_ids_without_ctrl, write_types=['', '_std'] )
+        for gene in jacks_results:
+            jacks_pseudo_results[gene] = jacks_results[gene]
 
     # Write out the results
     LOG.info('Writing JACKS results')
-    if len(ctrl_geneset) > 1:
-        writeJacksWResults(outprefix, jacks_results, sample_ids_without_ctrl, ctrl_geneset=ctrl_geneset, write_types=['', '_std', '_pval'], fdr=fdr, fdr_thresh_type=fdr_thresh_type)
+    if len(ctrl_geneset) > 0 and n_pseudo > 0:
+        writeJacksWResults(outprefix, jacks_pseudo_results, sample_ids_without_ctrl, ctrl_geneset=set([x for x in jacks_pseudo_results if 'JACKS_PSEUDO_GENE' in x]), write_types=['', '_std', '_pval'], fdr=fdr, pseudo=True, fdr_thresh_type=fdr_thresh_type)
     else:
         writeJacksWResults(outprefix, jacks_results, sample_ids_without_ctrl, ctrl_geneset=ctrl_geneset, write_types=['', '_std'])
     writeJacksXResults(outfile_x, jacks_results, gene_grnas)
