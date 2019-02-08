@@ -327,7 +327,7 @@ def getJacksParser():
     ap.add_argument("--ctrl_genes",
                     type=str,
                     default=None,
-                    help="Either, a single gene name (e.g. if all ctrl guides tagged with same gene), or file containing line-separated list of genes to be used as negative controls (recommend intergenic, or known non-significant over non-cutting). These are used to derive p-values for significance, and to infer variances of single replicate samples.")
+                    help="(Required if p-value output is wanted) Either, the name of a gene (as used in sgrnamappingfile) specifying a set of negative control guides (e.g. these could be intergenic, non-targeting etc) OR a text file containing a list (one per line) of genes to use as negative controls. Also used to infer variances in case of single replicate data.")
     ap.add_argument("--n_pseudo",
                     type=int,
                     default=2000,
