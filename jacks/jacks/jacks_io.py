@@ -46,9 +46,10 @@ def getMode(vals, allow_bimode=True):
         return mins[0]
     else: return xdata[max_mode_idx+1] #Otherwise just take the heighest one
 
-def getFDRGeneSets(jacks_w1_pvals,test_sample_ids, fdr):
+def getFDRGeneSets(jacks_w1_pvals, fdr):
     fdr_gene_sets = []
-    for sample_idx in enumerate(test_sample_ids):
+    a_gene = [x for x in jacks_w1_pvals][0]
+    for sample_idx in range(len(jacks_w1_pvals[a_gene])):
         pval_genes = [(jacks_w1_pvals[gene][sample_idx], gene) for gene in jacks_w1_pvals]
         pval_genes.sort()
         below_idxs = [i for i,(pval, gene) in enumerate(pval_genes) if pval < fdr*(i+1)/len(pval_genes)]
@@ -326,11 +327,11 @@ def getJacksParser():
     ap.add_argument("--ctrl_genes",
                     type=str,
                     default=None,
-                    help="Either, a single gene name (e.g. if all ctrl guides tagged with same gene), or file containing line-separated list of genes to be used as negative controls (recommend intergenic, or known non-significant over non-cutting)")
+                    help="Either, a single gene name (e.g. if all ctrl guides tagged with same gene), or file containing line-separated list of genes to be used as negative controls (recommend intergenic, or known non-significant over non-cutting). These are used to derive p-values for significance, and to infer variances of single replicate samples.")
     ap.add_argument("--n_pseudo",
                     type=int,
                     default=2000,
-                    help="Number of pseudo genes to create and infer JACKS results for by randomly sampling guides for the control genes")
+                    help="Number of pseudo genes to create and infer JACKS results for by randomly sampling guides from the control genes (specified in --ctrl_genes)")
     ap.add_argument("--count_prior",
                     type=int,
                     default=32,

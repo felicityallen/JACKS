@@ -113,6 +113,8 @@ def inferMissingVariances(data, meta, sample_ids, ctrl_spec, ctrl_geneset):
             ctrl_data = data[:,[sample_ids.index(ctrl_spec[sample_id])], 0]
             concat_data = np.concatenate((ctrl_data, data[:,[s],0]), axis=1)
             data[nan_flags,s,1] = 2*calc_posterior_sd(concat_data, guideset_indexs=guideset_indexs)[nan_flags] #sigma_hat
+        else:
+            LOG.warning('Undefined variances in sample %s, set --ctrl_genes input to JACKS to infer variances from control genes' % sample_id)
 
     return data
 
