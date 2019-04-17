@@ -208,7 +208,7 @@ def createSampleSpec(infile, repfile, rep_hdr, sample_hdr, common_ctrl_sample, c
         if ctrl_per_sample: 
             if row[sample_hdr] in ctrl_spec:
                 if ctrl_spec[row[sample_hdr]] != row[ctrl_sample_hdr]:
-                    err_msg = '%s vs %s for %s\n' % (ctrl_spec[row[sample_hdr]], row[ctrl_sample_or_hdr], row[sample_hdr])
+                    err_msg = '%s vs %s for %s\n' % (ctrl_spec[row[sample_hdr]], row[ctrl_sample_hdr], row[sample_hdr])
                     raise Exception(err_msg + 'Different controls for replicates of the sample not supported.')
             else: ctrl_spec[row[sample_hdr]] = row[ctrl_sample_hdr]
         else:
