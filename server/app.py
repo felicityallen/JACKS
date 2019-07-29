@@ -151,7 +151,7 @@ def plot_gene_heatmap(analysis_id, gene):
     template = "plot.html"
     picklefile = get_analysis_file(analysis_id, PICKLE_FILENAME)
     if os.path.isfile(picklefile):
-        image_path = os.path.join("results", analysis_id, "figure.png")
+        image_path = os.path.join("results", analysis_id, f"{gene}.png")
         full_image_path = os.path.join(os.path.dirname(__file__), "static", image_path)
         if not os.path.exists(full_image_path):
             plot_heatmap(picklefile, gene, full_image_path)
