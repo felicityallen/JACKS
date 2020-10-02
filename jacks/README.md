@@ -76,6 +76,8 @@ Guide 3	KRAS
 
 * `--ctrl_genes`: (Required if p-value output is wanted) Either, the name of a gene (as used in sgrnamappingfile) specifying a set of negative control guides (e.g. these could be intergenic, non-targeting etc) OR a text file containing a list (one per line) of genes to use as negative controls. Also used to infer variances in case of single replicate data. For positive selection use additional flag --positive, else negative selection will be applied.
   
+* `--positive`: (optional) Use if positive selection is wanted, else will apply negative selection.
+  
 example:
 ```bash
 python run_JACKS.py example/example_count_data.tab example/example_repmap.tab example/example_count_data.tab --common_ctrl_sample=CTRL --gene_hdr=gene --outprefix=example_jacks/example_jacks --ctrl_genes=example/NEGv1.txt
