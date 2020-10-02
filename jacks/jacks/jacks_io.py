@@ -13,6 +13,8 @@ OUTPREFIX_DEFAULT = ""
 APPLY_W_HP_DEFAULT = False
 PICKLE_FILENAME = '_JACKS_results_full.pickle'
 NORM_TYPE_DEFAULT = 'median'
+GENE_FILENAME = '_gene_JACKS_results.txt'
+GRNA_FILENAME = '_grna_JACKS_results.txt'
 
 def getGeneWs(jacks_results, gene):
     return jacks_results[gene][4]
