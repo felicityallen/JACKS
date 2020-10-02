@@ -74,7 +74,7 @@ Guide 3	KRAS
   - `outprefix_grna_JACKS_results.txt` contains the gRNA efficacy scores E(X) and E(X^2) for each guide
   -  `outprefix_JACKS_full_data.pickle` is a pickle file containing the full screen results
 
-* `--ctrl_genes`: (Required if p-value output is wanted) Either, the name of a gene (as used in sgrnamappingfile) specifying a set of negative control guides (e.g. these could be intergenic, non-targeting etc) OR a text file containing a list (one per line) of genes to use as negative controls. Also used to infer variances in case of single replicate data.
+* `--ctrl_genes`: (Required if p-value output is wanted) Either, the name of a gene (as used in sgrnamappingfile) specifying a set of negative control guides (e.g. these could be intergenic, non-targeting etc) OR a text file containing a list (one per line) of genes to use as negative controls. Also used to infer variances in case of single replicate data. For positive selection use additional flag --positive, else negative selection will be applied.
   
 example:
 ```bash
