@@ -2,12 +2,12 @@ In the subdirectories here you will find:
 
 ## jacks:  
 
-The JACKS python package (please see jacks/README.txt for usage instructions)
+The JACKS python package (please see [jacks/README.md](jacks/README.md) for usage instructions)
 
 
 ## 2018_paper_materials: 
 
-Scripts and README files with location of results and data for the JACKS 2018 paper.
+Scripts and README files with location of results and data for the [JACKS 2018 paper](https://dx.doi.org/10.1101%2Fgr.238923.118).
 
 ## reference_grna_efficacies:
 
